@@ -20,6 +20,7 @@ import httpx
 log = logging.getLogger("smarttaka.routing")
 
 OSRM_TABLE_URL = "https://router.project-osrm.org/table/v1/driving"
+OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving"
 ROAD_FACTOR = 1.35      # straight line -> typical road distance (used only when OSRM is unavailable)
 AVG_SPEED_KMH = 25      # slow urban speed of a waste truck (only for the estimate)
 EXACT_LIMIT = 8         # up to 8 stops we try every order and get the true optimum
@@ -93,6 +94,32 @@ def build_matrix(points: List[Point]):
         log.warning("OSRM failed, using estimate: %s", exc)
         dist, dur = _estimate_matrix(points)
         return dist, dur, f"estimate (OSRM failed: {exc})"[:300]
+
+
+# ---------------------------------------------------------------- road-following line for the map
+def fetch_route_geometry(ordered_points: List[Point]):
+    """The real road-following line (depot -> stops in visiting order -> depot), as [[lat, lng], ...],
+    for drawing on the map. Free public OSRM server, same one used above - no API key.
+    Returns None if OSRM can't be reached; the map then falls back to straight lines
+    between stops. This never affects the distance/fuel/cost numbers, which always come
+    from build_matrix() above."""
+    if len(ordered_points) < 2:
+        return None
+    coordinates = ";".join(f"{p.lng},{p.lat}" for p in ordered_points)
+    url = f"{OSRM_ROUTE_URL}/{coordinates}"
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.get(url, params={"overview": "full", "geometries": "geojson"})
+        if resp.status_code >= 400:
+            return None
+        payload = resp.json()
+        if payload.get("code") != "Ok":
+            return None
+        coords = payload["routes"][0]["geometry"]["coordinates"]  # [[lng, lat], ...]
+        return [[lat, lng] for lng, lat in coords]
+    except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+        log.warning("OSRM route geometry failed, map will use straight lines: %s", exc)
+        return None
 
 
 # ---------------------------------------------------------------- TSP

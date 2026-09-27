@@ -17,8 +17,10 @@ export default function RouteView({ route, onComplete, busyStop }) {
       color: s.status === "completed" ? "#9ca3af" : s.kind === "bin" ? "#dc2626" : "#16a34a",
     })),
   ];
-  // Straight lines between stops in order (not the exact roads)
-  const line = [[route.depot.lat, route.depot.lng], ...stops.map((s) => [s.lat, s.lng]), [route.depot.lat, route.depot.lng]];
+  // Real road-following line from the backend (OSRM); falls back to straight lines if unavailable
+  const line = route.line && route.line.length > 1
+    ? route.line
+    : [[route.depot.lat, route.depot.lng], ...stops.map((s) => [s.lat, s.lng]), [route.depot.lat, route.depot.lng]];
 
   return (
     <div className="card">

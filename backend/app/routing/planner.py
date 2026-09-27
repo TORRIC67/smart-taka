@@ -2,6 +2,7 @@
 Also builds the JSON the admin and driver screens need."""
 from datetime import date, datetime, timezone
 from typing import List, Tuple
+import json
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -13,7 +14,7 @@ from app.models.route import CollectionStop, Route
 from app.models.user import User
 from app.models.waste_bin import WasteBin
 
-from .engine import Point, build_matrix, evaluate_route, solve_tsp, split_for_trucks
+from .engine import Point, build_matrix, evaluate_route, fetch_route_geometry, solve_tsp, split_for_trucks
 
 
 class PlanError(Exception):
@@ -69,10 +70,13 @@ def plan_routes(db: Session, day: date) -> Tuple[List[Route], str]:
             order, dist, dur, truck.fuel_km_per_liter,
             settings.FUEL_PRICE_TZS_PER_LITER, settings.TRIP_FIXED_COST_TZS, settings.STOP_SERVICE_MINUTES,
         )
+        visiting_path = [0] + list(order) + [0]
+        geometry = fetch_route_geometry([matrix_points[i] for i in visiting_path])
         route = Route(
             truck_id=truck.id, route_date=day, status="planned",
             total_distance_km=stats["distance_km"], est_minutes=stats["minutes"],
             fuel_liters=stats["fuel_liters"], total_cost_tzs=stats["cost_tzs"],
+            geometry_json=json.dumps(geometry) if geometry else None,
         )
         db.add(route)
         db.flush()
@@ -118,6 +122,7 @@ def route_details(db: Session, route: Route) -> dict:
         "fuel_liters": route.fuel_liters,
         "total_cost_tzs": route.total_cost_tzs,
         "depot": {"lat": settings.DEPOT_LATITUDE, "lng": settings.DEPOT_LONGITUDE},
+        "line": json.loads(route.geometry_json) if route.geometry_json else None,
         "stops": items,
         "completed": sum(1 for i in items if i["status"] == "completed"),
         "total": len(items),

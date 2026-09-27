@@ -6,7 +6,7 @@ routes           = the result of the AI route engine for one truck on one day.
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, DateTime, ForeignKey, String
+from sqlalchemy import Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -23,6 +23,9 @@ class Route(Base):
     fuel_liters: Mapped[Optional[float]]
     total_cost_tzs: Mapped[Optional[int]]
     status: Mapped[str] = mapped_column(String(20), default="planned")  # planned | in_progress | done
+    # The real road-following line for the map, as JSON: "[[lat,lng], ...]". Null if OSRM
+    # was unreachable when the route was generated - the map then draws straight lines instead.
+    geometry_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class CollectionStop(Base):
