@@ -1,0 +1,59 @@
+databases:
+  - name: smarttaka-db
+    plan: free
+
+services:
+  # ---- Backend (FastAPI) ----
+  - type: web
+    name: smarttaka-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smarttaka-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: '["https://smarttaka.onrender.com"]'
+      - key: APP_URL
+        value: https://smarttaka.onrender.com
+      - key: PAYMENT_PROVIDER
+        value: harakapay
+      - key: HARAKAPAY_API_KEY
+        sync: false
+      - key: HARAKAPAY_WEBHOOK_TOKEN
+        sync: false
+      - key: HARAKAPAY_WEBHOOK_URL
+        sync: false
+      - key: MONTHLY_FEE_TZS
+        value: "200"
+      - key: SMS_PROVIDER
+        value: meseji
+      - key: MESEJI_API_KEY
+        sync: false
+      - key: MESEJI_SENDER_ID
+        value: MESEJI
+      - key: SENSOR_API_KEY
+        sync: false
+      - key: DEPOT_LATITUDE
+        value: "-6.838848"
+      - key: DEPOT_LONGITUDE
+        value: "39.271071"
+      - key: FUEL_PRICE_TZS_PER_LITER
+        value: "3000"
+
+  # ---- Frontend (React + Vite, static) ----
+  - type: web
+    name: smarttaka
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://smarttaka-api.onrender.com
