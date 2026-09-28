@@ -54,6 +54,19 @@ class BinCreate(BaseModel):
     longitude: float = Field(ge=-180, le=180)
 
 
+class BinUpdate(BaseModel):
+    """Every field is optional: send only what changed (e.g. just latitude/longitude
+    after a bin was physically moved to a new spot)."""
+    ward: Optional[str] = Field(default=None, min_length=1, max_length=80)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+
+
+class AdminCreate(_WithPhone):
+    full_name: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=8, max_length=72)
+
+
 class ComplaintCreate(BaseModel):
     rating: int = Field(ge=1, le=5)
     message: str = Field(min_length=1, max_length=1000)
@@ -88,3 +101,26 @@ class BinOut(BaseModel):
     longitude: float
     fill_level: int
     status: str
+    is_active: bool = True
+
+
+class AdminOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    phone: str
+    role: str  # "admin" | "super_admin"
+    is_active: bool
+
+
+class DriverOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    driver_id: int
+    user_id: int
+    full_name: str
+    phone: str
+    plate_number: str
+    fuel_km_per_liter: float
+    is_active: bool
