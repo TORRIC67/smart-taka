@@ -9,9 +9,11 @@ from app.db.base import Base
 
 
 class Role:
+    SUPER_ADMIN = "super_admin"  # can also add/remove other admins - everything else is the same as ADMIN
     ADMIN = "admin"
     RESIDENT = "resident"
     DRIVER = "driver"
+    ADMINS = (ADMIN, SUPER_ADMIN)  # everyone who may use the admin screens
 
 
 class User(Base):
@@ -22,6 +24,6 @@ class User(Base):
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)  # also the login name
     email: Mapped[Optional[str]] = mapped_column(String(120))
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(20), index=True)  # admin | resident | driver
+    role: Mapped[str] = mapped_column(String(20), index=True)  # admin | super_admin | resident | driver
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

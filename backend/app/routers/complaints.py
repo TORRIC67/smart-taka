@@ -29,7 +29,7 @@ def submit_complaint(
     return {"id": complaint.id}
 
 
-@router.get("", dependencies=[Depends(require_roles(Role.ADMIN))])
+@router.get("", dependencies=[Depends(require_roles(*Role.ADMINS))])
 def list_complaints(db: Session = Depends(get_db)) -> List[dict]:
     rows = db.execute(
         select(Complaint, Customer)

@@ -21,6 +21,7 @@ from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.models.customer import Customer
 from app.models.payment import Payment
+from app.models.user import Role
 from app.payments.base import PaymentProvider, PaymentProviderError
 from app.payments.harakapay import HarakaPayProvider
 from app.payments.mock import MockProvider
@@ -63,7 +64,7 @@ class PaymentOut(BaseModel):
 
 def _can_access(user, customer: Customer) -> bool:
     """Admin: everyone. Resident: only their own record. Driver: none."""
-    if user.role == "admin":
+    if user.role in Role.ADMINS:
         return True
     return user.role == "resident" and customer.user_id == user.id
 
@@ -125,7 +126,7 @@ def harakapay_webhook(
 
 @router.get("/balance")
 def balance(user=Depends(get_current_user), provider: HarakaPayProvider = Depends(get_provider)):
-    if user.role != "admin":
+    if user.role not in Role.ADMINS:
         raise HTTPException(403, "Admin only")
     try:
         return provider.get_balance()
@@ -139,7 +140,7 @@ def reconcile(
     user=Depends(get_current_user),
     provider: PaymentProvider = Depends(get_provider),
 ):
-    if user.role != "admin":
+    if user.role not in Role.ADMINS:
         raise HTTPException(403, "Admin only")
     return {"updated": reconcile_pending(db, provider)}
 

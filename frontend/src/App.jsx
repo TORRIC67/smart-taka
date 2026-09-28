@@ -9,11 +9,12 @@ import Resident from "./pages/Resident.jsx";
 
 // Only lets the right role in; everyone else is sent to login or to their own page
 function Protected({ role, children }) {
+  const allowed = Array.isArray(role) ? role : [role];
   const { user, loading } = useAuth();
   const { t } = useI18n();
   if (loading) return <p className="center">{t("loading")}</p>;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== role) return <Navigate to={homeFor(user.role)} replace />;
+  if (!allowed.includes(user.role)) return <Navigate to={homeFor(user.role)} replace />;
   return children;
 }
 
@@ -22,7 +23,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<SelfRegister />} />
-      <Route path="/admin" element={<Protected role="admin"><Admin /></Protected>} />
+      <Route path="/admin" element={<Protected role={["admin", "super_admin"]}><Admin /></Protected>} />
       <Route path="/driver" element={<Protected role="driver"><Driver /></Protected>} />
       <Route path="/me" element={<Protected role="resident"><Resident /></Protected>} />
       <Route path="*" element={<Navigate to="/login" replace />} />

@@ -14,7 +14,7 @@ from app.models.user import Role, User
 from app.services.billing import today_tz
 from app.sms.service import get_sms_provider, send_billing_sms
 
-router = APIRouter(prefix="/admin", tags=["billing"], dependencies=[Depends(require_roles(Role.ADMIN))])
+router = APIRouter(prefix="/admin", tags=["billing"], dependencies=[Depends(require_roles(*Role.ADMINS))])
 
 
 class BillingRequest(BaseModel):

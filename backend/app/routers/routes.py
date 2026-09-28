@@ -18,7 +18,7 @@ from app.models.user import Role, User
 from app.routing.planner import PlanError, complete_stop, plan_routes, route_details
 from app.services.billing import today_tz
 
-admin_router = APIRouter(prefix="/admin/routes", tags=["routes"], dependencies=[Depends(require_roles(Role.ADMIN))])
+admin_router = APIRouter(prefix="/admin/routes", tags=["routes"], dependencies=[Depends(require_roles(*Role.ADMINS))])
 driver_router = APIRouter(prefix="/driver", tags=["driver"])
 
 

@@ -46,6 +46,9 @@ def receive_reading(
     waste_bin = db.scalar(select(WasteBin).where(WasteBin.code == reading.bin_code))
     if waste_bin is None:
         raise HTTPException(404, "Unknown bin_code - register the bin first")
+    if not waste_bin.is_active:
+        # Removed/relocated away by an admin: ignore its readings so it never lands on a route
+        raise HTTPException(409, "This bin was removed from service")
 
     waste_bin.fill_level = reading.fill_level
     waste_bin.last_reading_at = datetime.now(timezone.utc)

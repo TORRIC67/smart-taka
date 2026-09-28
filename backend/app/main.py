@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import models  # noqa: F401  (registers all tables)
 from app.core.config import settings
 from app.db.base import Base
+from app.db.migrate import ensure_columns, ensure_super_admin
 from app.db.session import SessionLocal, engine
 from app.payments.service import reconcile_pending
 from app.routers import admin, auth, billing, complaints, payments, routes, sensors
@@ -38,6 +39,12 @@ async def _reconcile_loop() -> None:
 async def lifespan(_: FastAPI):
     # Development convenience: create tables if missing. For production use Alembic migrations.
     Base.metadata.create_all(engine)
+    try:
+        ensure_columns(engine)  # add any column a newer version needs to tables that already exist
+        with SessionLocal() as db:
+            ensure_super_admin(db)
+    except Exception:  # never stop the app from booting because of the migration
+        log.exception("Startup migration failed")
     if settings.PAYMENT_PROVIDER == "mock":
         log.warning("PAYMENT_PROVIDER=mock: payments are FAKE. Development only, never in production.")
     use_reconcile = settings.PAYMENT_PROVIDER == "mock" or settings.HARAKAPAY_API_KEY

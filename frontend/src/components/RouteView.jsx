@@ -3,7 +3,7 @@ import { useI18n } from "../useI18n";
 
 // Shows one route: totals, map with numbered stops, and the ordered list.
 // Pass onComplete(stopId) to show completion buttons (driver screen).
-export default function RouteView({ route, onComplete, busyStop }) {
+export default function RouteView({ route, onComplete, busyStop, onCompleteRoute }) {
   const { t } = useI18n();
   const stops = route.stops;
   const points = [
@@ -29,6 +29,9 @@ export default function RouteView({ route, onComplete, busyStop }) {
         <span className="muted">{t("driver_label")} {route.driver_name}</span>
         <span className={`badge ${route.status === "done" ? "paid" : "billed"}`}>{route.status}</span>
         <span className="muted">{t("stops_label")} {route.completed}/{route.total}</span>
+        {onCompleteRoute && route.status !== "done" && (
+          <button className="btn ghost" onClick={() => onCompleteRoute(route.id)}>{t("complete_route_btn")}</button>
+        )}
       </div>
 
       <div className="stats">

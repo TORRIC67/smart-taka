@@ -111,6 +111,9 @@ const dict = {
   tab_register: { sw: "Register", en: "Register", fr: "Inscription" },
   tab_routes: { sw: "Routes (AI)", en: "Routes (AI)", fr: "Itinéraires (IA)" },
   tab_complaints: { sw: "Complaints", en: "Complaints", fr: "Plaintes" },
+  tab_bins: { sw: "Bins", en: "Bins", fr: "Bacs" },
+  tab_fleet: { sw: "Madereva/Malori", en: "Drivers & trucks", fr: "Chauffeurs et camions" },
+  tab_admins: { sw: "Maadmin", en: "Admins", fr: "Administrateurs" },
 
   // ---- overview ----
   live_map_title: { sw: "Ramani ya ukusanyaji (moja kwa moja)", en: "Live collection map", fr: "Carte de collecte en direct" },
@@ -239,6 +242,79 @@ const dict = {
   pay_timeout: { sw: "Bado hatujapata jibu la malipo.", en: "We haven't heard back about this payment yet.", fr: "Nous n'avons pas encore de réponse pour ce paiement." },
   pay_retry: { sw: "Jaribu tena", en: "Try again", fr: "Réessayer" },
   pay_recheck: { sw: "Angalia tena", en: "Check again", fr: "Vérifier à nouveau" },
+
+  // ---- admin: bins management ----
+  bins_registered_label: { sw: "Bins zilizosajiliwa", en: "Registered bins", fr: "Bacs inscrits" },
+  th_code: { sw: "Code", en: "Code", fr: "Code" },
+  th_location: { sw: "Mahali", en: "Location", fr: "Emplacement" },
+  th_fill: { sw: "Kujaa", en: "Fill level", fr: "Remplissage" },
+  bin_status_full: { sw: "imejaa", en: "full", fr: "plein" },
+  bin_status_ok: { sw: "sawa", en: "ok", fr: "ok" },
+  open_map: { sw: "Ramani", en: "Map", fr: "Carte" },
+  no_bins: { sw: "Hakuna bin zilizosajiliwa.", en: "No bins registered.", fr: "Aucun bac inscrit." },
+  bin_edit_hint: {
+    sw: "Code ya bin haibadilishwi kwa sababu sensor inaitumia. Unaweza kubadilisha mahali ilipo tu.",
+    en: "A bin's code can't be changed because its sensor uses it. You can change where it is.",
+    fr: "Le code d'un bac ne peut pas être modifié car son capteur l'utilise. Vous pouvez changer son emplacement.",
+  },
+  confirm_remove_bin: {
+    sw: "Kuondoa bin {code} (mfano imeondolewa mahali pake)? Haitaonekana tena kwenye ramani wala routes.",
+    en: "Remove bin {code} (e.g. it was taken away)? It will no longer appear on the map or in routes.",
+    fr: "Retirer le bac {code} (par ex. enlevé) ? Il n'apparaîtra plus sur la carte ni dans les itinéraires.",
+  },
+  bin_removed_notice: { sw: "Bin {code} imeondolewa.", en: "Bin {code} was removed.", fr: "Le bac {code} a été retiré." },
+  bin_restored_notice: { sw: "Bin {code} imerejeshwa.", en: "Bin {code} was restored.", fr: "Le bac {code} a été rétabli." },
+  bin_saved_notice: { sw: "Bin {code} imehifadhiwa.", en: "Bin {code} updated.", fr: "Bac {code} mis à jour." },
+
+  // ---- admin: drivers & trucks ----
+  fleet_active_label: { sw: "Madereva/malori yanayofanya kazi", en: "Active drivers/trucks", fr: "Chauffeurs/camions actifs" },
+  fleet_register_hint: {
+    sw: "Kusajili dereva/lori mpya, tumia kichupo cha Register.",
+    en: "To add a new driver/truck, use the Register tab.",
+    fr: "Pour ajouter un chauffeur/camion, utilisez l'onglet Inscription.",
+  },
+  th_driver: { sw: "Dereva", en: "Driver", fr: "Chauffeur" },
+  th_truck: { sw: "Lori", en: "Truck", fr: "Camion" },
+  th_fuel: { sw: "Km kwa lita", en: "Km per litre", fr: "Km par litre" },
+  no_drivers: { sw: "Hakuna dereva aliyesajiliwa.", en: "No drivers registered.", fr: "Aucun chauffeur inscrit." },
+  confirm_remove_driver: {
+    sw: "Kumtoa {name} kunafunga akaunti yake na lori {plate} halitatumika kwenye routes. Endelea?",
+    en: "Removing {name} disables their login, and truck {plate} will no longer be used for routes. Continue?",
+    fr: "Retirer {name} désactive son compte et le camion {plate} ne sera plus utilisé. Continuer ?",
+  },
+  driver_removed_notice: {
+    sw: "Dereva {name} ameondolewa. Tengeneza routes upya.",
+    en: "Driver {name} was removed. Regenerate the routes.",
+    fr: "Le chauffeur {name} a été retiré. Régénérez les itinéraires.",
+  },
+
+  // ---- admin: managing other admins (super admin only) ----
+  admins_add_title: { sw: "Ongeza admin mpya", en: "Add a new admin", fr: "Ajouter un administrateur" },
+  admins_add_hint: {
+    sw: "Admin mpya anaweza kufanya kila kitu isipokuwa kuongeza au kuondoa admin wengine. Ni wewe tu (Super Admin) unayeweza kufanya hivyo.",
+    en: "A new admin can do everything except add or remove other admins. Only you (the Super Admin) can do that.",
+    fr: "Un nouvel administrateur peut tout faire sauf ajouter ou retirer d'autres administrateurs. Seul vous (Super Admin) le pouvez.",
+  },
+  admins_add_submit: { sw: "Ongeza admin", en: "Add admin", fr: "Ajouter l'administrateur" },
+  admins_add_success: { sw: "Admin {name} ameongezwa.", en: "Admin {name} added.", fr: "Administrateur {name} ajouté." },
+  th_role: { sw: "Cheo", en: "Role", fr: "Rôle" },
+  role_super_admin: { sw: "Super Admin", en: "Super Admin", fr: "Super Admin" },
+  role_admin: { sw: "Admin", en: "Admin", fr: "Admin" },
+  confirm_remove_admin: {
+    sw: "Kumtoa {name} kunamzuia kuingia kwenye mfumo mara moja. Endelea?",
+    en: "Removing {name} locks them out of the system immediately. Continue?",
+    fr: "Retirer {name} le bloque immédiatement. Continuer ?",
+  },
+  admin_removed_notice: { sw: "{name} ametolewa uadmin.", en: "{name} is no longer an admin.", fr: "{name} n'est plus administrateur." },
+  admin_restored_notice: { sw: "{name} amerudishwa uadmin.", en: "{name} is an admin again.", fr: "{name} est de nouveau administrateur." },
+
+  // ---- admin: marking routes complete ----
+  complete_route_btn: { sw: "Kamilisha route yote", en: "Mark whole route complete", fr: "Terminer tout l'itinéraire" },
+  confirm_complete_route: {
+    sw: "Hii itaweka vituo vyote vilivyobaki kama vimekusanywa na kufunga route hii. Endelea?",
+    en: "This marks every remaining stop as collected and closes the route. Continue?",
+    fr: "Cela marque tous les arrêts restants comme collectés et clôture l'itinéraire. Continuer ?",
+  },
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

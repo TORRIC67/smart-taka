@@ -16,13 +16,17 @@ from app.models.payment import Payment
 from app.models.route import CollectionStop, Route
 from app.models.user import Role, User
 from app.models.waste_bin import WasteBin
-from app.routing.planner import stop_dict
+from app.routing.planner import complete_stop, route_details, stop_dict
 from app.core.config import settings
-from app.schemas import BinCreate, BinOut, CustomerCreate, CustomerOut, CustomerUpdate, DriverCreate
+from app.schemas import (
+    AdminCreate, AdminOut, BinCreate, BinOut, BinUpdate, CustomerCreate, CustomerOut,
+    CustomerUpdate, DriverCreate, DriverOut,
+)
 from app.services.billing import today_tz
 from app.services.customers import create_customer
 
-router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_roles(Role.ADMIN))])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_roles(*Role.ADMINS))])
+super_admin_only = Depends(require_roles(Role.SUPER_ADMIN))
 
 
 # ---------- registering things ----------
@@ -80,6 +84,70 @@ def register_bin(data: BinCreate, db: Session = Depends(get_db)):
         raise HTTPException(409, "A bin with this code already exists")
     db.refresh(waste_bin)
     return waste_bin
+
+
+# ---------- admins (super admin only: adding/removing admin accounts) ----------
+@router.post("/admins", response_model=AdminOut, status_code=201, dependencies=[super_admin_only])
+def register_admin(data: AdminCreate, db: Session = Depends(get_db)):
+    """Creates a new (regular) admin login. Only a super admin can do this - a regular
+    admin can do everything else here except add or remove other admins."""
+    user = User(full_name=data.full_name, phone=data.phone, password_hash=hash_password(data.password), role=Role.ADMIN)
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Phone number is already registered")
+    db.refresh(user)
+    return user
+
+
+@router.get("/admins", response_model=List[AdminOut], dependencies=[super_admin_only])
+def list_admins(db: Session = Depends(get_db)):
+    return db.scalars(select(User).where(User.role.in_([Role.ADMIN, Role.SUPER_ADMIN])).order_by(User.id)).all()
+
+
+@router.delete("/admins/{admin_id}", response_model=AdminOut, dependencies=[super_admin_only])
+def remove_admin(admin_id: int, me: User = Depends(require_roles(Role.SUPER_ADMIN)), db: Session = Depends(get_db)):
+    """Disables an admin's login. A super admin cannot remove themself or another super admin
+    this way (to avoid ever locking every super admin out)."""
+    target = db.get(User, admin_id)
+    if target is None or target.role not in (Role.ADMIN, Role.SUPER_ADMIN):
+        raise HTTPException(404, "Admin not found")
+    if target.id == me.id:
+        raise HTTPException(400, "You cannot remove your own admin account")
+    if target.role == Role.SUPER_ADMIN:
+        raise HTTPException(400, "A super admin account cannot be removed here")
+    target.is_active = False
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+@router.post("/admins/{admin_id}/reactivate", response_model=AdminOut, dependencies=[super_admin_only])
+def reactivate_admin(admin_id: int, db: Session = Depends(get_db)):
+    target = db.get(User, admin_id)
+    if target is None or target.role not in (Role.ADMIN, Role.SUPER_ADMIN):
+        raise HTTPException(404, "Admin not found")
+    target.is_active = True
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+# ---------- drivers/trucks (view) ----------
+@router.get("/drivers", response_model=List[DriverOut])
+def list_drivers(db: Session = Depends(get_db)):
+    rows = db.execute(
+        select(Driver, User, Truck).join(User, User.id == Driver.user_id).join(Truck, Truck.driver_id == Driver.id)
+    ).all()
+    return [
+        DriverOut(
+            driver_id=driver.id, user_id=user.id, full_name=user.full_name, phone=user.phone,
+            plate_number=truck.plate_number, fuel_km_per_liter=truck.fuel_km_per_liter, is_active=user.is_active,
+        )
+        for driver, user, truck in rows
+    ]
 
 
 # ---------- viewing things ----------
@@ -160,23 +228,91 @@ def reactivate_customer(customer_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/bins", response_model=List[BinOut])
-def list_bins(db: Session = Depends(get_db)):
-    return db.scalars(select(WasteBin).order_by(WasteBin.id)).all()
+def list_bins(include_inactive: bool = False, db: Session = Depends(get_db)):
+    q = select(WasteBin)
+    if not include_inactive:
+        q = q.where(WasteBin.is_active.is_(True))
+    return db.scalars(q.order_by(WasteBin.id)).all()
 
 
-@router.delete("/bins/{bin_id}")
-def remove_bin(bin_id: int, db: Session = Depends(get_db)):
-    """Removes a bin. Refused if it has ever been part of a route (so history stays intact) -
-    in that case just leave it registered; a bin sitting idle costs nothing."""
+@router.patch("/bins/{bin_id}", response_model=BinOut)
+def update_bin(bin_id: int, data: BinUpdate, db: Session = Depends(get_db)):
+    """Edit a bin's details - typically its location after it has been physically moved.
+    Send only the fields that changed."""
     waste_bin = db.get(WasteBin, bin_id)
     if waste_bin is None:
         raise HTTPException(404, "Bin not found")
-    used = db.scalar(select(func.count(CollectionStop.id)).where(CollectionStop.bin_id == bin_id))
-    if used:
-        raise HTTPException(409, "Bin haiwezi kufutwa kwa sababu tayari imeshawahi kuwa kwenye route.")
-    db.delete(waste_bin)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(waste_bin, field, value)
     db.commit()
-    return {"ok": True}
+    db.refresh(waste_bin)
+    return waste_bin
+
+
+@router.delete("/bins/{bin_id}", response_model=BinOut)
+def remove_bin(bin_id: int, db: Session = Depends(get_db)):
+    """Takes a bin out of service (e.g. it was removed/relocated). History (any past
+    collection stops) is kept - this only hides it from new routes and the live map."""
+    waste_bin = db.get(WasteBin, bin_id)
+    if waste_bin is None:
+        raise HTTPException(404, "Bin not found")
+    waste_bin.is_active = False
+    for stop in db.scalars(
+        select(CollectionStop).where(CollectionStop.bin_id == bin_id, CollectionStop.status == "pending")
+    ):
+        db.delete(stop)
+    db.commit()
+    db.refresh(waste_bin)
+    return waste_bin
+
+
+@router.post("/bins/{bin_id}/reactivate", response_model=BinOut)
+def reactivate_bin(bin_id: int, db: Session = Depends(get_db)):
+    waste_bin = db.get(WasteBin, bin_id)
+    if waste_bin is None:
+        raise HTTPException(404, "Bin not found")
+    waste_bin.is_active = True
+    # Removing a bin deleted its waiting stop. If it is still full, put it back on the
+    # collection list now instead of waiting for the sensor's next reading.
+    if waste_bin.status == "full" and db.scalar(
+        select(CollectionStop).where(CollectionStop.bin_id == bin_id, CollectionStop.status == "pending")
+    ) is None:
+        db.add(CollectionStop(stop_date=today_tz(), bin_id=bin_id))
+    db.commit()
+    db.refresh(waste_bin)
+    return waste_bin
+
+
+@router.post("/routes/stops/{stop_id}/complete")
+def admin_complete_stop(stop_id: int, db: Session = Depends(get_db)):
+    """Marks one stop as collected - the same action a driver does from their phone,
+    available here too in case the driver can't (no phone, sensor found it already emptied,
+    correcting a mistake, etc). A route finishes automatically once every one of its stops
+    is marked complete this way or by the driver."""
+    stop = db.get(CollectionStop, stop_id)
+    route = db.get(Route, stop.route_id) if stop and stop.route_id else None
+    if route is None:
+        raise HTTPException(404, "Stop not found")
+    complete_stop(db, stop, route)
+    db.commit()
+    return {"route": route_details(db, route)}
+
+
+@router.post("/routes/{route_id}/complete")
+def admin_complete_route(route_id: int, db: Session = Depends(get_db)):
+    """Marks EVERY still-pending stop of this route as collected and closes the route.
+    Same effect as the driver tapping 'completed' on each stop."""
+    route = db.get(Route, route_id)
+    if route is None:
+        raise HTTPException(404, "Route not found")
+    pending = db.scalars(
+        select(CollectionStop).where(CollectionStop.route_id == route_id, CollectionStop.status == "pending")
+    ).all()
+    for stop in pending:
+        complete_stop(db, stop, route)
+    route.status = "done"
+    db.commit()
+    return {"route": route_details(db, route)}
 
 
 @router.get("/summary")
@@ -209,6 +345,7 @@ def summary(db: Session = Depends(get_db)):
         "revenue_tzs": revenue,
         "trucks_total": db.scalar(select(func.count(Truck.id))) or 0,
         "trucks_in_operation": in_operation or 0,
+        "bins_total": db.scalar(select(func.count(WasteBin.id)).where(WasteBin.is_active.is_(True))) or 0,
         "cost_per_household_tzs": round(cost_today / households_today) if households_today else 0,
         "complaints": db.scalar(select(func.count(Complaint.id))) or 0,
     }
@@ -229,6 +366,6 @@ def live_map(db: Session = Depends(get_db)):
             CustomerOut.model_validate(c).model_dump()
             for c in db.scalars(select(Customer).join(User, User.id == Customer.user_id).where(User.is_active.is_(True)))
         ],
-        "bins": [BinOut.model_validate(b).model_dump() for b in db.scalars(select(WasteBin)).all()],
+        "bins": [BinOut.model_validate(b).model_dump() for b in db.scalars(select(WasteBin).where(WasteBin.is_active.is_(True))).all()],
         "stops": [stop_dict(db, s) for s in stops],
     }

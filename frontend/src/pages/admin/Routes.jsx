@@ -12,6 +12,7 @@ export default function RoutesTab() {
   const [source, setSource] = useState(null); // where the distances came from (only known right after generating)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [busyStop, setBusyStop] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -38,6 +39,24 @@ export default function RoutesTab() {
     }
   }
 
+  // Same action the driver does on their phone - here as a backup for the admin.
+  // The backend answers with the updated route, which replaces the old one on screen.
+  async function markDone(request, stopId = null) {
+    setBusyStop(stopId);
+    setError("");
+    try {
+      const { route } = await request();
+      setRoutes((prev) => prev.map((r) => (r.id === route.id ? route : r)));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusyStop(null);
+    }
+  }
+  const completeStop = (stopId) => markDone(() => post(`/admin/routes/stops/${stopId}/complete`), stopId);
+  const completeRoute = (routeId) =>
+    window.confirm(t("confirm_complete_route")) && markDone(() => post(`/admin/routes/${routeId}/complete`));
+
   return (
     <>
       <div className="row">
@@ -53,7 +72,9 @@ export default function RoutesTab() {
       )}
       {error && <p className="err">{error}</p>}
       {routes.length === 0 && !error && <div className="card muted">{t("no_routes_today")}</div>}
-      {routes.map((r) => <RouteView key={r.id} route={r} />)}
+      {routes.map((r) => (
+        <RouteView key={r.id} route={r} onComplete={completeStop} busyStop={busyStop} onCompleteRoute={completeRoute} />
+      ))}
     </>
   );
 }
