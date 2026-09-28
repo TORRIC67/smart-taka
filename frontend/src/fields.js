@@ -24,3 +24,9 @@ export const binFields = [
   { name: "latitude", labelKey: "field_latitude", type: "number", step: "any", required: true },
   { name: "longitude", labelKey: "field_longitude", type: "number", step: "any", required: true },
 ];
+
+export const adminFields = [
+  { name: "full_name", labelKey: "field_full_name", required: true },
+  { name: "phone", labelKey: "field_phone", type: "tel", placeholder: "0712345678", required: true },
+  { name: "password", labelKey: "field_password", type: "password", required: true },
+];

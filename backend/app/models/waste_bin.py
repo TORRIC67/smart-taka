@@ -19,3 +19,4 @@ class WasteBin(Base):
     fill_level: Mapped[int] = mapped_column(default=0)          # last reading, 0-100 %
     status: Mapped[str] = mapped_column(String(10), default="ok")  # ok | full
     last_reading_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    is_active: Mapped[bool] = mapped_column(default=True)  # False = decommissioned/relocated away, kept for history

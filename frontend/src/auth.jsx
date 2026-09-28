@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 // Each role has its own home page
-export const homeFor = (role) => (role === "admin" ? "/admin" : role === "driver" ? "/driver" : "/me");
+export const homeFor = (role) => (role === "admin" || role === "super_admin" ? "/admin" : role === "driver" ? "/driver" : "/me");
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // {id, full_name, role, customer, ...} or null

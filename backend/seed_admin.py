@@ -31,9 +31,9 @@ def main():
     with SessionLocal() as db:
         if db.scalar(select(User).where(User.phone == phone)):
             sys.exit("A user with this phone already exists.")
-        db.add(User(full_name=sys.argv[2], phone=phone, password_hash=hash_password(password), role=Role.ADMIN))
+        db.add(User(full_name=sys.argv[2], phone=phone, password_hash=hash_password(password), role=Role.SUPER_ADMIN))
         db.commit()
-    print("Admin created. Start the server and log in at /docs.")
+    print("Super admin created. Start the server and log in at /docs.")
 
 
 if __name__ == "__main__":
