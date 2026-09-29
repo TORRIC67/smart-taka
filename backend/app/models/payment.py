@@ -17,6 +17,9 @@ class Payment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    # Copied from the customer at payment time, so zone reports stay correct even if a
+    # customer is ever moved to a different provider later.
+    provider_id: Mapped[Optional[int]] = mapped_column(ForeignKey("providers.id"), nullable=True, index=True)
     provider: Mapped[str] = mapped_column(String(30), default="harakapay")
     order_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)  # HarakaPay order_id
     phone: Mapped[str] = mapped_column(String(20))

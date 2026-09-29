@@ -9,3 +9,4 @@ bcrypt
 tzdata
 python-dotenv
 psycopg[binary]
+fpdf2

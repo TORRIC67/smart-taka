@@ -114,6 +114,8 @@ const dict = {
   tab_bins: { sw: "Bins", en: "Bins", fr: "Bacs" },
   tab_fleet: { sw: "Madereva/Malori", en: "Drivers & trucks", fr: "Chauffeurs et camions" },
   tab_admins: { sw: "Maadmin", en: "Admins", fr: "Administrateurs" },
+  tab_providers: { sw: "Kanda (Providers)", en: "Zones (Providers)", fr: "Zones (Prestataires)" },
+  tab_reports: { sw: "Ripoti", en: "Reports", fr: "Rapports" },
 
   // ---- overview ----
   live_map_title: { sw: "Ramani ya ukusanyaji (moja kwa moja)", en: "Live collection map", fr: "Carte de collecte en direct" },
@@ -315,6 +317,44 @@ const dict = {
     en: "This marks every remaining stop as collected and closes the route. Continue?",
     fr: "Cela marque tous les arrêts restants comme collectés et clôture l'itinéraire. Continuer ?",
   },
+
+  // ---- admin: service providers (zones) ----
+  providers_add_title: { sw: "Ongeza kanda mpya", en: "Add a new zone", fr: "Ajouter une nouvelle zone" },
+  providers_add_hint: {
+    sw: "Kila kanda ina kituo (depot) chake, bei yake ya mafuta, malori na wateja wake wenyewe. Baada ya kuunda kanda, ongeza admin wake wa kwanza kwenye tab ya Admins.",
+    en: "Each zone has its own depot, fuel price, trucks and customers. After creating a zone, add its first admin from the Admins tab.",
+    fr: "Chaque zone a son propre dépôt, prix du carburant, camions et clients. Après avoir créé une zone, ajoutez son premier administrateur dans l'onglet Admins.",
+  },
+  providers_add_submit: { sw: "Ongeza kanda", en: "Add zone", fr: "Ajouter la zone" },
+  providers_add_success: { sw: "Kanda {name} imeongezwa.", en: "Zone {name} added.", fr: "Zone {name} ajoutée." },
+  field_zone_name: { sw: "Jina la kanda (mfano: Dar es Salaam)", en: "Zone name (e.g. Dar es Salaam)", fr: "Nom de la zone (ex. Dar es Salaam)" },
+  field_fuel_price: { sw: "Bei ya mafuta (TZS kwa lita)", en: "Fuel price (TZS per litre)", fr: "Prix du carburant (TZS par litre)" },
+  field_zone: { sw: "Kanda", en: "Zone", fr: "Zone" },
+  field_zone_placeholder: { sw: "-- chagua kanda --", en: "-- choose a zone --", fr: "-- choisir une zone --" },
+  th_zone: { sw: "Kanda", en: "Zone", fr: "Zone" },
+  th_customers: { sw: "Wateja", en: "Customers", fr: "Clients" },
+  th_bins: { sw: "Bins", en: "Bins", fr: "Bacs" },
+  th_trucks: { sw: "Malori", en: "Trucks", fr: "Camions" },
+  th_revenue_this_month: { sw: "Mapato mwezi huu", en: "Revenue this month", fr: "Recettes ce mois-ci" },
+  th_fuel_price: { sw: "Bei ya mafuta", en: "Fuel price", fr: "Prix du carburant" },
+  no_providers: { sw: "Hakuna kanda bado.", en: "No zones yet.", fr: "Aucune zone pour le moment." },
+
+  // ---- admin: reports ----
+  granularity_month: { sw: "Kila mwezi", en: "Monthly", fr: "Mensuel" },
+  granularity_quarter: { sw: "Robo mwaka", en: "Quarterly", fr: "Trimestriel" },
+  granularity_year: { sw: "Kila mwaka", en: "Annually", fr: "Annuel" },
+  reports_my_zone_title: { sw: "Makusanyo ya kanda yako", en: "Your zone's collections", fr: "Recettes de votre zone" },
+  reports_all_zones_title: { sw: "Makusanyo ya kanda zote", en: "Collections across all zones", fr: "Recettes de toutes les zones" },
+  no_report_data: { sw: "Bado hakuna malipo ya kuonyesha.", en: "No payments to show yet.", fr: "Aucun paiement à afficher pour le moment." },
+  payments_count_label: { sw: "malipo {n}", en: "{n} payments", fr: "{n} paiements" },
+  th_total_collected: { sw: "Jumla iliyokusanywa", en: "Total collected", fr: "Total collecté" },
+
+  // ---- resident: payment history / receipts ----
+  payment_history_title: { sw: "Historia ya malipo yangu", en: "My payment history", fr: "Mon historique de paiement" },
+  no_payments_yet: { sw: "Bado hujalipa.", en: "No payments yet.", fr: "Aucun paiement pour le moment." },
+  th_period: { sw: "Mwezi", en: "Period", fr: "Période" },
+  th_amount: { sw: "Kiasi", en: "Amount", fr: "Montant" },
+  download_receipt_btn: { sw: "Pakua risiti", en: "Download receipt", fr: "Télécharger le reçu" },
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

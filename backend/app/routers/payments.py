@@ -12,8 +12,9 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 # Adjust these imports to match your project:
@@ -21,6 +22,7 @@ from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.models.customer import Customer
 from app.models.payment import Payment
+from app.models.provider import ServiceProvider
 from app.models.user import Role
 from app.payments.base import PaymentProvider, PaymentProviderError
 from app.payments.harakapay import HarakaPayProvider
@@ -32,6 +34,8 @@ from app.payments.service import (
     start_payment,
     sync_payment,
 )
+from app.schemas import PaymentHistoryOut
+from app.services.receipts import build_receipt_pdf
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -63,9 +67,11 @@ class PaymentOut(BaseModel):
 
 
 def _can_access(user, customer: Customer) -> bool:
-    """Admin: everyone. Resident: only their own record. Driver: none."""
-    if user.role in Role.ADMINS:
+    """Super admin: everyone. Regular admin: only their own zone's customers. Resident: only their own record."""
+    if user.role == Role.SUPER_ADMIN:
         return True
+    if user.role == Role.ADMIN:
+        return customer.provider_id == user.provider_id
     return user.role == "resident" and customer.user_id == user.id
 
 
@@ -92,6 +98,7 @@ def collect(
             amount=settings.MONTHLY_FEE_TZS,  # fixed server-side so nobody can pay less
             billing_period=period,
             webhook_url=settings.HARAKAPAY_WEBHOOK_URL,
+            provider_id=customer.provider_id,
         )
     except AlreadyPaidError:
         raise HTTPException(409, "Already paid for this period")
@@ -143,6 +150,42 @@ def reconcile(
     if user.role not in Role.ADMINS:
         raise HTTPException(403, "Admin only")
     return {"updated": reconcile_pending(db, provider)}
+
+
+@router.get("/mine", response_model=list[PaymentHistoryOut])
+def my_payments(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """The logged-in resident's own payment history (for the 'Payment history' screen)."""
+    if user.role != Role.RESIDENT:
+        raise HTTPException(403, "Residents only")
+    customer = db.scalar(select(Customer).where(Customer.user_id == user.id))
+    if customer is None:
+        raise HTTPException(404, "No customer profile for this user")
+    return db.scalars(select(Payment).where(Payment.customer_id == customer.id).order_by(Payment.created_at.desc())).all()
+
+
+@router.get("/{order_id}/receipt")
+def download_receipt(order_id: str, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """A PDF receipt for one completed payment - the customer downloads their own;
+    an admin can also pull one up (e.g. if the customer lost theirs)."""
+    payment = db.scalar(select(Payment).where(Payment.order_id == order_id))
+    if payment is None:
+        raise HTTPException(404, "Payment not found")
+    customer = db.get(Customer, payment.customer_id)
+    if not _can_access(user, customer):
+        raise HTTPException(403, "Not allowed")
+    if payment.status != "completed":
+        raise HTTPException(400, "This payment has not completed yet, so there is no receipt")
+
+    provider_name = "Smart Taka"
+    if customer.provider_id:
+        zone = db.get(ServiceProvider, customer.provider_id)
+        if zone:
+            provider_name = zone.name
+    pdf_bytes = build_receipt_pdf(payment, customer, provider_name)
+    return Response(
+        content=pdf_bytes, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="receipt-{order_id}.pdf"'},
+    )
 
 
 @router.get("/{order_id}", response_model=PaymentOut)

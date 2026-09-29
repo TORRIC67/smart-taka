@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_roles
+from app.api.deps import get_db, get_optional_scope, require_roles
 from app.core.config import settings
 from app.models.customer import Customer
 from app.models.sms_log import SmsLog
@@ -18,13 +18,13 @@ router = APIRouter(prefix="/admin", tags=["billing"], dependencies=[Depends(requ
 
 
 class BillingRequest(BaseModel):
-    customer_ids: Optional[List[int]] = None  # leave empty = every customer
+    customer_ids: Optional[List[int]] = None  # leave empty = every customer (in your zone)
     billing_period: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}$")  # default: this month
     force: bool = False  # True = send again even if this month's SMS already went out
 
 
 @router.post("/billing/send")
-def send_billing(body: BillingRequest, db: Session = Depends(get_db)):
+def send_billing(body: BillingRequest, scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
     try:
         provider = get_sms_provider()
     except RuntimeError as exc:
@@ -32,6 +32,8 @@ def send_billing(body: BillingRequest, db: Session = Depends(get_db)):
 
     period = body.billing_period or today_tz().strftime("%Y-%m")
     query = select(Customer).join(User, User.id == Customer.user_id).where(User.is_active.is_(True)).order_by(Customer.id)
+    if scope is not None:
+        query = query.where(Customer.provider_id == scope)
     if body.customer_ids:
         query = query.where(Customer.id.in_(body.customer_ids))
     customers = db.scalars(query).all()
@@ -44,8 +46,11 @@ def send_billing(body: BillingRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/sms-logs")
-def sms_logs(limit: int = 50, db: Session = Depends(get_db)):
-    rows = db.scalars(select(SmsLog).order_by(SmsLog.id.desc()).limit(min(limit, 200))).all()
+def sms_logs(limit: int = 50, scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
+    q = select(SmsLog).order_by(SmsLog.id.desc())
+    if scope is not None:
+        q = q.join(Customer, Customer.id == SmsLog.customer_id).where(Customer.provider_id == scope)
+    rows = db.scalars(q.limit(min(limit, 200))).all()
     return [
         {"id": r.id, "customer_id": r.customer_id, "phone": r.phone, "period": r.period,
          "status": r.status, "error": r.error, "message": r.message, "created_at": r.created_at}

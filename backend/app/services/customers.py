@@ -10,7 +10,7 @@ from app.models.user import Role, User
 from app.schemas import CustomerCreate
 
 
-def create_customer(db: Session, data: CustomerCreate) -> Customer:
+def create_customer(db: Session, data: CustomerCreate, provider_id: int) -> Customer:
     user = User(
         full_name=data.full_name,
         phone=data.phone,
@@ -31,6 +31,7 @@ def create_customer(db: Session, data: CustomerCreate) -> Customer:
         address=data.address,
         latitude=data.latitude,
         longitude=data.longitude,
+        provider_id=provider_id,
     )
     db.add(customer)
     db.commit()

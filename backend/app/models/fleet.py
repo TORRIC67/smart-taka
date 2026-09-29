@@ -1,4 +1,6 @@
 """drivers + trucks tables."""
+from typing import Optional
+
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,3 +23,4 @@ class Truck(Base):
     # Needed by the route engine to turn distance into litres of fuel and then into TZS.
     fuel_km_per_liter: Mapped[float]
     is_active: Mapped[bool] = mapped_column(default=True)
+    provider_id: Mapped[int] = mapped_column(ForeignKey("providers.id"), index=True)

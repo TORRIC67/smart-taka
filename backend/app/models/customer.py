@@ -25,6 +25,7 @@ class Customer(Base):
     address: Mapped[Optional[str]] = mapped_column(String(255))
     latitude: Mapped[float]   # used by map display + route optimization
     longitude: Mapped[float]
+    provider_id: Mapped[Optional[int]] = mapped_column(ForeignKey("providers.id"), nullable=True, index=True)
     payment_status: Mapped[str] = mapped_column(String(20), default=PaymentStatus.REGISTERED, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

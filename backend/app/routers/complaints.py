@@ -1,11 +1,11 @@
 """Customers send complaints/ratings; admin reads them."""
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_roles
+from app.api.deps import get_db, get_optional_scope, require_roles
 from app.models.complaint import Complaint
 from app.models.customer import Customer
 from app.models.user import Role, User
@@ -30,12 +30,11 @@ def submit_complaint(
 
 
 @router.get("", dependencies=[Depends(require_roles(*Role.ADMINS))])
-def list_complaints(db: Session = Depends(get_db)) -> List[dict]:
-    rows = db.execute(
-        select(Complaint, Customer)
-        .join(Customer, Customer.id == Complaint.customer_id)
-        .order_by(Complaint.created_at.desc())
-    ).all()
+def list_complaints(scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)) -> List[dict]:
+    q = select(Complaint, Customer).join(Customer, Customer.id == Complaint.customer_id)
+    if scope is not None:
+        q = q.where(Customer.provider_id == scope)
+    rows = db.execute(q.order_by(Complaint.created_at.desc())).all()
     return [
         {
             "id": c.id,

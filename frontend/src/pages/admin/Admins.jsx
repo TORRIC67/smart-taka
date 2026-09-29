@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import FormCard from "../../components/FormCard.jsx";
-import { adminFields } from "../../fields.js";
 import { del, get, post } from "../../api/client";
 import { useI18n } from "../../useI18n";
 
@@ -8,17 +7,31 @@ import { useI18n } from "../../useI18n";
 export default function Admins() {
   const { t } = useI18n();
   const [rows, setRows] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [note, setNote] = useState(null); // {ok, text}
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setRows(await get("/admin/admins"));
+      const [admins, zones] = await Promise.all([get("/admin/admins"), get("/admin/providers")]);
+      setRows(admins);
+      setProviders(zones);
     } catch (e) {
       setNote({ ok: false, text: e.message });
     }
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  const adminFields = [
+    { name: "full_name", labelKey: "field_full_name", required: true },
+    { name: "phone", labelKey: "field_phone", type: "tel", placeholder: "0712345678", required: true },
+    { name: "password", labelKey: "field_password", type: "password", required: true },
+    {
+      name: "provider_id", labelKey: "field_zone", type: "select", numeric: true, required: true,
+      placeholder: t("field_zone_placeholder"),
+      options: providers.map((p) => ({ value: p.id, label: p.name })),
+    },
+  ];
 
   async function act(fn, okText) {
     setBusy(true);
@@ -59,7 +72,7 @@ export default function Admins() {
         <table>
           <thead>
             <tr>
-              <th>{t("th_name")}</th><th>{t("th_phone")}</th><th>{t("th_role")}</th>
+              <th>{t("th_name")}</th><th>{t("th_phone")}</th><th>{t("th_role")}</th><th>{t("th_zone")}</th>
               <th>{t("th_status")}</th><th>{t("th_actions")}</th>
             </tr>
           </thead>
@@ -69,6 +82,7 @@ export default function Admins() {
                 <td>{a.full_name}</td>
                 <td>{a.phone}</td>
                 <td><span className={`badge ${a.role === "super_admin" ? "paid" : "registered"}`}>{t(a.role === "super_admin" ? "role_super_admin" : "role_admin")}</span></td>
+                <td>{a.provider_name || "-"}</td>
                 <td>{a.is_active ? <span className="badge paid">OK</span> : <span className="badge">{t("removed_badge")}</span>}</td>
                 <td>
                   {/* A super admin can never be removed from here (nobody could get back in) */}

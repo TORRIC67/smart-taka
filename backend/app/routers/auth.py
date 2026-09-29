@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.phone import normalize_phone
 from app.core.security import create_access_token, verify_password
 from app.models.customer import Customer
+from app.models.provider import ServiceProvider
 from app.models.user import User
 from app.schemas import CustomerCreate, CustomerOut, TokenOut
 from app.services.customers import create_customer
@@ -31,8 +32,15 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 
 @router.post("/register", response_model=CustomerOut, status_code=201)
 def self_register(data: CustomerCreate, db: Session = Depends(get_db)):
-    """Optional self-registration: a resident signs up on their own. Role is always 'resident'."""
-    return create_customer(db, data)
+    """Optional self-registration: a resident signs up on their own. Role is always 'resident'.
+    They must say which zone/provider they belong to (an admin-created customer instead
+    gets this automatically from the admin who registers them)."""
+    if data.provider_id is None:
+        raise HTTPException(400, "provider_id is required")
+    provider = db.get(ServiceProvider, data.provider_id)
+    if provider is None or not provider.is_active:
+        raise HTTPException(404, "Service provider not found")
+    return create_customer(db, data, provider_id=provider.id)
 
 
 @router.get("/me")

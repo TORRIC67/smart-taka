@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -26,4 +26,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20), index=True)  # admin | super_admin | resident | driver
     is_active: Mapped[bool] = mapped_column(default=True)
+    # The zone this admin/driver manages. NULL for a super admin (all zones) and for a resident
+    # (a customer's zone lives on their Customer row instead, since one login could in theory
+    # apply to either - in practice only admin/driver logins use this column).
+    provider_id: Mapped[Optional[int]] = mapped_column(ForeignKey("providers.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

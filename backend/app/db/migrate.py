@@ -6,11 +6,16 @@ ensure_columns() adds it (only if it is missing), on both PostgreSQL and SQLite.
 """
 import logging
 
-from sqlalchemy import inspect, select, text
+from sqlalchemy import inspect, select, text, update
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.models.customer import Customer
+from app.models.fleet import Truck
+from app.models.provider import ServiceProvider
 from app.models.user import Role, User
+from app.models.waste_bin import WasteBin
 
 log = logging.getLogger("smarttaka.migrate")
 
@@ -18,6 +23,11 @@ log = logging.getLogger("smarttaka.migrate")
 NEW_COLUMNS = [
     ("bins", "is_active", "BOOLEAN NOT NULL DEFAULT TRUE"),  # False = removed/relocated away
     ("routes", "geometry_json", "TEXT"),                     # road-following line for the map
+    ("users", "provider_id", "INTEGER"),                     # the zone an admin/driver belongs to
+    ("customers", "provider_id", "INTEGER"),
+    ("bins", "provider_id", "INTEGER"),
+    ("trucks", "provider_id", "INTEGER"),
+    ("payments", "provider_id", "INTEGER"),
 ]
 
 
@@ -42,5 +52,31 @@ def ensure_super_admin(db: Session) -> None:
     first = db.scalar(select(User).where(User.role == Role.ADMIN, User.is_active.is_(True)).order_by(User.id))
     if first is not None:
         first.role = Role.SUPER_ADMIN
+        first.provider_id = None  # a super admin belongs to no single zone
         db.commit()
         log.warning("Migration: %s (%s) is now the super admin", first.full_name, first.phone)
+
+
+def ensure_default_provider(db: Session) -> None:
+    """This app used to be single-zone: one depot, one fuel price (from .env), everything
+    else unscoped. The very first time this runs after upgrading, turn that single setup
+    into the first ServiceProvider row, and attach every existing customer/bin/truck/admin
+    that has no provider yet to it - so nothing that was already registered disappears."""
+    if db.scalar(select(ServiceProvider.id)) is not None:
+        return  # already migrated (or a fresh install that created its own providers)
+    default = ServiceProvider(
+        name="Dar es Salaam",
+        depot_latitude=settings.DEPOT_LATITUDE,
+        depot_longitude=settings.DEPOT_LONGITUDE,
+        fuel_price_tzs_per_liter=settings.FUEL_PRICE_TZS_PER_LITER,
+    )
+    db.add(default)
+    db.flush()
+    db.execute(update(Customer).where(Customer.provider_id.is_(None)).values(provider_id=default.id))
+    db.execute(update(WasteBin).where(WasteBin.provider_id.is_(None)).values(provider_id=default.id))
+    db.execute(update(Truck).where(Truck.provider_id.is_(None)).values(provider_id=default.id))
+    db.execute(
+        update(User).where(User.provider_id.is_(None), User.role == Role.ADMIN).values(provider_id=default.id)
+    )
+    db.commit()
+    log.warning("Migration: created default service provider %r and attached existing data to it", default.name)

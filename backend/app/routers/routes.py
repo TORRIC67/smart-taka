@@ -1,6 +1,6 @@
 """Route endpoints.
-Admin:  POST /admin/routes/generate  -> runs the AI route engine for a day
-        GET  /admin/routes           -> routes of a day
+Admin:  POST /admin/routes/generate  -> runs the AI route engine for a day (one zone)
+        GET  /admin/routes           -> routes of a day (one zone)
 Driver: GET  /driver/route           -> my route today (ordered stops, distance, fuel, cost)
         POST /driver/stops/{id}/complete -> mark one stop done
 """
@@ -11,8 +11,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_roles
+from app.api.deps import get_db, get_required_provider, require_roles
 from app.models.fleet import Driver, Truck
+from app.models.provider import ServiceProvider
 from app.models.route import CollectionStop, Route
 from app.models.user import Role, User
 from app.routing.planner import PlanError, complete_stop, plan_routes, route_details
@@ -23,11 +24,13 @@ driver_router = APIRouter(prefix="/driver", tags=["driver"])
 
 
 @admin_router.post("/generate")
-def generate(day: Optional[date] = None, db: Session = Depends(get_db)):
-    """Calculates the best order of stops, distance, fuel and cost for each available truck."""
+def generate(day: Optional[date] = None, provider: ServiceProvider = Depends(get_required_provider), db: Session = Depends(get_db)):
+    """Calculates the best order of stops, distance, fuel and cost for each available truck
+    IN ONE ZONE. A regular admin's own zone is used automatically; a super admin must pass
+    ?provider_id=."""
     day = day or today_tz()
     try:
-        routes, source = plan_routes(db, day)
+        routes, source = plan_routes(db, day, provider)
     except PlanError as exc:
         db.rollback()
         raise HTTPException(400, str(exc))
@@ -35,9 +38,13 @@ def generate(day: Optional[date] = None, db: Session = Depends(get_db)):
 
 
 @admin_router.get("")
-def list_routes(day: Optional[date] = None, db: Session = Depends(get_db)):
+def list_routes(day: Optional[date] = None, provider: ServiceProvider = Depends(get_required_provider), db: Session = Depends(get_db)):
     day = day or today_tz()
-    routes = db.scalars(select(Route).where(Route.route_date == day).order_by(Route.id)).all()
+    routes = db.scalars(
+        select(Route).join(Truck, Truck.id == Route.truck_id)
+        .where(Route.route_date == day, Truck.provider_id == provider.id)
+        .order_by(Route.id)
+    ).all()
     return {"date": day.isoformat(), "routes": [route_details(db, r) for r in routes]}
 
 

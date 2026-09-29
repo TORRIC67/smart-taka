@@ -3,7 +3,7 @@ import { useI18n } from "../useI18n";
 
 // A generic form. Give it a list of fields and an async onSubmit(values) that returns a success message.
 // Used for: register customer, register driver + truck, register bin, self-registration.
-export default function FormCard({ title, hint, fields, onSubmit, submitLabel, withLocation = false }) {
+export default function FormCard({ title, hint, fields, onSubmit, submitLabel, withLocation = false, latField = "latitude", lngField = "longitude" }) {
   const { t } = useI18n();
   const empty = () => Object.fromEntries(fields.map((f) => [f.name, ""]));
   const [values, setValues] = useState(empty);
@@ -16,8 +16,8 @@ export default function FormCard({ title, hint, fields, onSubmit, submitLabel, w
     if (!navigator.geolocation) return setMsg({ ok: false, text: t("geo_unsupported") });
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        set("latitude", pos.coords.latitude.toFixed(6));
-        set("longitude", pos.coords.longitude.toFixed(6));
+        set(latField, pos.coords.latitude.toFixed(6));
+        set(lngField, pos.coords.longitude.toFixed(6));
       },
       () => setMsg({ ok: false, text: t("geo_failed") })
     );
@@ -32,7 +32,7 @@ export default function FormCard({ title, hint, fields, onSubmit, submitLabel, w
       for (const f of fields) {
         const v = values[f.name];
         if (v === "" && !f.required) continue; // optional and empty: leave out
-        payload[f.name] = f.type === "number" ? Number(v) : v;
+        payload[f.name] = f.type === "number" || f.numeric ? Number(v) : v;
       }
       const text = await onSubmit(payload);
       setMsg({ ok: true, text: text || t("saved_generic") });
@@ -52,14 +52,21 @@ export default function FormCard({ title, hint, fields, onSubmit, submitLabel, w
         {fields.map((f) => (
           <label key={f.name}>
             {f.labelKey ? t(f.labelKey) : f.label}
-            <input
-              type={f.type || "text"}
-              step={f.step}
-              required={f.required}
-              placeholder={f.placeholder}
-              value={values[f.name]}
-              onChange={(e) => set(f.name, e.target.value)}
-            />
+            {f.type === "select" ? (
+              <select required={f.required} value={values[f.name]} onChange={(e) => set(f.name, e.target.value)}>
+                <option value="" disabled>{f.placeholder || "--"}</option>
+                {(f.options || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : (
+              <input
+                type={f.type || "text"}
+                step={f.step}
+                required={f.required}
+                placeholder={f.placeholder}
+                value={values[f.name]}
+                onChange={(e) => set(f.name, e.target.value)}
+              />
+            )}
           </label>
         ))}
       </div>

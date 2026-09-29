@@ -61,6 +61,7 @@ def start_payment(
     amount: int,
     billing_period: str,
     webhook_url: Optional[str],
+    provider_id: Optional[int] = None,  # the customer's ZONE (ServiceProvider), not the payment gateway
 ) -> Payment:
     # 1) Already paid this month? Then never charge again.
     already_paid = db.scalar(
@@ -104,6 +105,7 @@ def start_payment(
         fee=result.fee,
         net_amount=result.net_amount,
         status=PaymentStatus.PENDING.value,
+        provider_id=provider_id,
     )
     db.add(payment)
     db.commit()

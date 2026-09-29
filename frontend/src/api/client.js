@@ -42,3 +42,28 @@ export const get = (path) => request(path);
 export const post = (path, body) => request(path, { method: "POST", body: JSON.stringify(body ?? {}) });
 export const patch = (path, body) => request(path, { method: "PATCH", body: JSON.stringify(body ?? {}) });
 export const del = (path) => request(path, { method: "DELETE" });
+
+// For binary responses (PDF receipts). Triggers a real browser download using the
+// filename the server suggests (Content-Disposition), same auth as every other call.
+export async function downloadFile(path, fallbackName = "download") {
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API}${path}`, { headers });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Request failed (${res.status})`);
+  }
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match ? match[1] : fallbackName;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

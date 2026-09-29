@@ -12,10 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import models  # noqa: F401  (registers all tables)
 from app.core.config import settings
 from app.db.base import Base
-from app.db.migrate import ensure_columns, ensure_super_admin
+from app.db.migrate import ensure_columns, ensure_default_provider, ensure_super_admin
 from app.db.session import SessionLocal, engine
 from app.payments.service import reconcile_pending
-from app.routers import admin, auth, billing, complaints, payments, routes, sensors
+from app.routers import admin, auth, billing, complaints, payments, providers_public, routes, sensors
 
 log = logging.getLogger("smarttaka")
 
@@ -42,6 +42,7 @@ async def lifespan(_: FastAPI):
     try:
         ensure_columns(engine)  # add any column a newer version needs to tables that already exist
         with SessionLocal() as db:
+            ensure_default_provider(db)
             ensure_super_admin(db)
     except Exception:  # never stop the app from booting because of the migration
         log.exception("Startup migration failed")
@@ -64,6 +65,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(providers_public.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
 app.include_router(complaints.router)
