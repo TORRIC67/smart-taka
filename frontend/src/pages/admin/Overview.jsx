@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import MapView from "../../components/MapView.jsx";
 import { get } from "../../api/client";
+import { useAuth } from "../../auth.jsx";
 import { useI18n } from "../../useI18n";
 
 const tzs = (n) => `TZS ${Number(n).toLocaleString()}`;
@@ -11,35 +12,54 @@ const STATUS_COLOR = { registered: "#9ca3af", billed: "#eab308", paid: "#16a34a"
 
 export default function Overview() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin";
+
   const [sum, setSum] = useState(null);
   const [map, setMap] = useState(null);
   const [error, setError] = useState("");
 
+  // A super admin runs no single zone, so the live map (one depot) needs them to pick one.
+  // A regular admin's own zone is used automatically - no picker needed.
+  const [zones, setZones] = useState([]);
+  const [zoneId, setZoneId] = useState(null);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      get("/admin/providers").then((rows) => {
+        setZones(rows);
+        setZoneId((prev) => prev ?? rows[0]?.id ?? null);
+      }).catch((e) => setError(e.message));
+    }
+  }, [isSuperAdmin]);
+
   const load = useCallback(async () => {
     try {
-      const [s, m] = await Promise.all([get("/admin/summary"), get("/admin/map")]);
+      const mapPath = isSuperAdmin ? (zoneId ? `/admin/map?provider_id=${zoneId}` : null) : "/admin/map";
+      const [s, m] = await Promise.all([get("/admin/summary"), mapPath ? get(mapPath) : Promise.resolve(null)]);
       setSum(s);
       setMap(m);
       setError("");
     } catch (e) {
       setError(e.message);
     }
-  }, []);
+  }, [isSuperAdmin, zoneId]);
 
   // Load now, then refresh every 30 seconds so the map stays "live"
   useEffect(() => {
+    if (isSuperAdmin && zoneId == null) return;  // wait for the zone list first
     load();
     const t = setInterval(load, 30000);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, isSuperAdmin, zoneId]);
 
   if (error) return <p className="err">{error}</p>;
-  if (!sum || !map) return <p>{t("loading")}</p>;
+  if (!sum || (isSuperAdmin && zones.length === 0)) return <p>{t("loading")}</p>;
 
   // A customer already collected today turns grey again even though they're still "paid"
-  const collectedIds = new Set(map.stops.filter((s) => s.kind === "customer" && s.status === "completed").map((s) => s.id));
+  const collectedIds = map ? new Set(map.stops.filter((s) => s.kind === "customer" && s.status === "completed").map((s) => s.id)) : new Set();
 
-  const points = [
+  const points = map ? [
     { lat: map.depot.lat, lng: map.depot.lng, color: "#2563eb", label: t("legend_depot"), radius: 10 },
     ...map.customers.map((c) => ({
       key: `c${c.id}`,
@@ -53,7 +73,7 @@ export default function Overview() {
       key: `b${b.id}`, lat: b.latitude, lng: b.longitude, label: `${t("bin_label")} ${b.code}: ${b.fill_level}%`,
       color: b.status === "full" ? "#dc2626" : "#94a3b8", radius: b.status === "full" ? 10 : 6,
     })),
-  ];
+  ] : [];
 
   return (
     <>
@@ -67,15 +87,26 @@ export default function Overview() {
       </div>
 
       <div className="card">
-        <h3>{t("live_map_title")}</h3>
-        <MapView points={points} height={420} />
-        <div className="legend">
-          <span><i className="dot" style={{ background: "#2563eb" }} />{t("legend_depot")}</span>
-          <span><i className="dot" style={{ background: "#9ca3af" }} />{t("legend_registered")}</span>
-          <span><i className="dot" style={{ background: "#eab308" }} />{t("legend_billed")}</span>
-          <span><i className="dot" style={{ background: "#16a34a" }} />{t("legend_paid")}</span>
-          <span><i className="dot" style={{ background: "#dc2626" }} />{t("legend_full_bin")}</span>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0 }}>{t("live_map_title")}</h3>
+          {isSuperAdmin && (
+            <select value={zoneId ?? ""} onChange={(e) => setZoneId(Number(e.target.value))} style={{ maxWidth: 220 }}>
+              {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
+            </select>
+          )}
         </div>
+        {map ? (
+          <>
+            <MapView points={points} height={420} />
+            <div className="legend">
+              <span><i className="dot" style={{ background: "#2563eb" }} />{t("legend_depot")}</span>
+              <span><i className="dot" style={{ background: "#9ca3af" }} />{t("legend_registered")}</span>
+              <span><i className="dot" style={{ background: "#eab308" }} />{t("legend_billed")}</span>
+              <span><i className="dot" style={{ background: "#16a34a" }} />{t("legend_paid")}</span>
+              <span><i className="dot" style={{ background: "#dc2626" }} />{t("legend_full_bin")}</span>
+            </div>
+          </>
+        ) : <p className="muted">{t("loading")}</p>}
       </div>
     </>
   );
