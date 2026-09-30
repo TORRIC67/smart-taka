@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { useI18n } from "../useI18n";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
@@ -13,6 +14,7 @@ export default function Layout({ nav, children }) {
         {nav}
         <div className="who">
           <LanguageSwitcher dark />
+          <Link to="/change-password" className="btn ghost" style={{ textDecoration: "none" }}>{t("change_password_link")}</Link>
           <span>{user?.full_name}</span>
           <button className="btn ghost" onClick={logout}>{t("logout")}</button>
         </div>

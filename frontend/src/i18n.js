@@ -355,6 +355,35 @@ const dict = {
   th_period: { sw: "Mwezi", en: "Period", fr: "Période" },
   th_amount: { sw: "Kiasi", en: "Amount", fr: "Montant" },
   download_receipt_btn: { sw: "Pakua risiti", en: "Download receipt", fr: "Télécharger le reçu" },
+
+  // ---- password self-service ----
+  change_password_link: { sw: "Badilisha password", en: "Change password", fr: "Changer le mot de passe" },
+  change_password_title: { sw: "Badilisha password yako", en: "Change your password", fr: "Changer votre mot de passe" },
+  current_password_label: { sw: "Password ya sasa", en: "Current password", fr: "Mot de passe actuel" },
+  new_password_label: { sw: "Password mpya", en: "New password", fr: "Nouveau mot de passe" },
+  confirm_password_label: { sw: "Rudia password mpya", en: "Confirm new password", fr: "Confirmez le nouveau mot de passe" },
+  change_password_submit: { sw: "Badilisha password", en: "Change password", fr: "Changer le mot de passe" },
+  passwords_dont_match: { sw: "Password mpya hazifanani.", en: "The new passwords don't match.", fr: "Les nouveaux mots de passe ne correspondent pas." },
+  password_changed_success: { sw: "Password imebadilishwa.", en: "Password changed.", fr: "Mot de passe changé." },
+  back_to_dashboard: { sw: "Rudi kwenye dashibodi", en: "Back to dashboard", fr: "Retour au tableau de bord" },
+
+  forgot_password_link: { sw: "Umesahau password?", en: "Forgot password?", fr: "Mot de passe oublié ?" },
+  forgot_password_title: { sw: "Umesahau password", en: "Forgot password", fr: "Mot de passe oublié" },
+  forgot_password_hint: {
+    sw: "Weka namba ya simu uliyosajili. Tutakutumia msimbo wa siri (SMS) wa kubadili password.",
+    en: "Enter the phone number you registered with. We'll text you a code to reset your password.",
+    fr: "Entrez le numéro avec lequel vous êtes inscrit. Nous vous enverrons un code par SMS.",
+  },
+  send_code_btn: { sw: "Tuma msimbo", en: "Send code", fr: "Envoyer le code" },
+  otp_sent_notice: { sw: "Msimbo umetumwa kwa SMS. Angalia simu yako.", en: "A code has been texted to you. Check your phone.", fr: "Un code vous a été envoyé par SMS. Vérifiez votre téléphone." },
+  otp_code_label: { sw: "Msimbo (herufi 6)", en: "Code (6 digits)", fr: "Code (6 chiffres)" },
+  reset_password_submit: { sw: "Weka password mpya", en: "Reset password", fr: "Réinitialiser le mot de passe" },
+  password_reset_success: { sw: "Password imebadilishwa. Sasa unaweza kuingia.", en: "Password reset. You can log in now.", fr: "Mot de passe réinitialisé. Vous pouvez maintenant vous connecter." },
+
+  // ---- fuel price ----
+  fuel_price_card_title: { sw: "Bei ya mafuta ya kanda yako", en: "Your zone's fuel price", fr: "Prix du carburant de votre zone" },
+  fuel_price_updated: { sw: "Bei ya mafuta imesasishwa.", en: "Fuel price updated.", fr: "Prix du carburant mis à jour." },
+  liter_short: { sw: "lita", en: "litre", fr: "litre" },
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

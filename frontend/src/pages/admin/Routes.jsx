@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import RouteView from "../../components/RouteView.jsx";
 import { get, post } from "../../api/client";
+import { useAuth } from "../../auth.jsx";
 import { useI18n } from "../../useI18n";
 
 const todayLocal = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the user's time zone
 
 export default function RoutesTab() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin";
+
   const [day, setDay] = useState(todayLocal());
   const [routes, setRoutes] = useState([]);
   const [source, setSource] = useState(null); // where the distances came from (only known right after generating)
@@ -14,14 +18,29 @@ export default function RoutesTab() {
   const [error, setError] = useState("");
   const [busyStop, setBusyStop] = useState(null);
 
+  // A super admin runs no single zone, so they must pick which one to generate/view routes for.
+  const [zones, setZones] = useState([]);
+  const [zoneId, setZoneId] = useState(null);
+  useEffect(() => {
+    if (isSuperAdmin) {
+      get("/admin/providers").then((rows) => {
+        setZones(rows);
+        setZoneId((prev) => prev ?? rows[0]?.id ?? null);
+      }).catch((e) => setError(e.message));
+    }
+  }, [isSuperAdmin]);
+
+  const zoneQuery = isSuperAdmin && zoneId ? `&provider_id=${zoneId}` : "";
+
   const load = useCallback(async () => {
+    if (isSuperAdmin && zoneId == null) return;
     try {
       setError("");
-      setRoutes((await get(`/admin/routes?day=${day}`)).routes);
+      setRoutes((await get(`/admin/routes?day=${day}${zoneQuery}`)).routes);
     } catch (e) {
       setError(e.message);
     }
-  }, [day]);
+  }, [day, zoneQuery, isSuperAdmin, zoneId]);
   useEffect(() => { load(); }, [load]);
 
   // Runs the AI route engine: paid customers + full bins -> best order, distance, fuel, cost
@@ -29,7 +48,7 @@ export default function RoutesTab() {
     setBusy(true);
     setError("");
     try {
-      const r = await post(`/admin/routes/generate?day=${day}`);
+      const r = await post(`/admin/routes/generate?day=${day}${zoneQuery}`);
       setRoutes(r.routes);
       setSource(r.source);
     } catch (e) {
@@ -61,7 +80,12 @@ export default function RoutesTab() {
     <>
       <div className="row">
         <input type="date" value={day} onChange={(e) => { setDay(e.target.value); setSource(null); }} />
-        <button className="btn" disabled={busy} onClick={generate}>
+        {isSuperAdmin && (
+          <select value={zoneId ?? ""} onChange={(e) => setZoneId(Number(e.target.value))} style={{ maxWidth: 220 }}>
+            {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
+          </select>
+        )}
+        <button className="btn" disabled={busy || (isSuperAdmin && zoneId == null)} onClick={generate}>
           {busy ? t("calculating") : t("generate_routes_btn")}
         </button>
       </div>

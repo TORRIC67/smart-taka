@@ -41,6 +41,7 @@ export default function Login() {
       </label>
       <button className="btn" disabled={busy}>{busy ? t("logging_in") : t("login_button")}</button>
       {error && <p className="err" style={{ margin: 0 }}>{error}</p>}
+      <p className="muted" style={{ margin: 0 }}><Link to="/forgot-password">{t("forgot_password_link")}</Link></p>
       <p className="muted" style={{ margin: 0 }}>{t("no_account")} <Link to="/register">{t("register_here")}</Link></p>
     </form>
   );

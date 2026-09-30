@@ -25,6 +25,7 @@ from app.routing.planner import complete_stop, route_details, stop_dict
 from app.schemas import (
     AdminCreate, AdminOut, BinCreate, BinOut, BinUpdate, CustomerCreate, CustomerOut,
     CustomerUpdate, DriverCreate, DriverOut, PaymentHistoryOut, ProviderCreate, ProviderOut,
+    ProviderUpdate,
 )
 from app.services.billing import today_tz
 from app.services.customers import create_customer
@@ -217,6 +218,33 @@ def create_provider(data: ProviderCreate, db: Session = Depends(get_db)):
 def list_providers(db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceProvider).order_by(ServiceProvider.name)).all()
     return [_provider_out(db, p) for p in rows]
+
+
+@router.get("/providers/mine", response_model=ProviderOut)
+def my_provider(user: User = Depends(require_roles(*Role.ADMINS)), db: Session = Depends(get_db)):
+    """A regular admin's own zone (so they can see/edit e.g. their own fuel price without
+    needing the super-admin-only provider list)."""
+    if user.provider_id is None:
+        raise HTTPException(400, "This account has no zone assigned")
+    return _provider_out(db, db.get(ServiceProvider, user.provider_id))
+
+
+@router.patch("/providers/{provider_id}", response_model=ProviderOut)
+def update_provider(
+    provider_id: int, data: ProviderUpdate,
+    user: User = Depends(require_roles(*Role.ADMINS)), db: Session = Depends(get_db),
+):
+    """Change a zone's fuel price (and/or depot location). A regular admin may only touch
+    their own zone; a super admin may edit any zone."""
+    if user.role != Role.SUPER_ADMIN and user.provider_id != provider_id:
+        raise HTTPException(404, "Service provider not found")
+    provider = db.get(ServiceProvider, provider_id)
+    if provider is None:
+        raise HTTPException(404, "Service provider not found")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(provider, field, value)
+    db.commit()
+    return _provider_out(db, provider)
 
 
 # ---------- drivers/trucks (view) ----------

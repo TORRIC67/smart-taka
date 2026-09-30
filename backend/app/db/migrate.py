@@ -28,6 +28,8 @@ NEW_COLUMNS = [
     ("bins", "provider_id", "INTEGER"),
     ("trucks", "provider_id", "INTEGER"),
     ("payments", "provider_id", "INTEGER"),
+    ("users", "reset_otp_code", "VARCHAR(6)"),         # forgot-password OTP, cleared after use
+    ("users", "reset_otp_expires_at", "TIMESTAMP"),
 ]
 
 

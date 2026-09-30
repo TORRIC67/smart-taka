@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import MapView from "../../components/MapView.jsx";
-import { get } from "../../api/client";
+import { get, patch } from "../../api/client";
 import { useAuth } from "../../auth.jsx";
 import { useI18n } from "../../useI18n";
 
@@ -18,6 +18,30 @@ export default function Overview() {
   const [sum, setSum] = useState(null);
   const [map, setMap] = useState(null);
   const [error, setError] = useState("");
+
+  // A regular admin can see/adjust their own zone's fuel price right here.
+  const [myZone, setMyZone] = useState(null);
+  const [fuelInput, setFuelInput] = useState("");
+  const [editingFuel, setEditingFuel] = useState(false);
+  const [fuelBusy, setFuelBusy] = useState(false);
+  const [fuelMsg, setFuelMsg] = useState(null);
+  useEffect(() => {
+    if (!isSuperAdmin) get("/admin/providers/mine").then(setMyZone).catch(() => {});
+  }, [isSuperAdmin]);
+  async function saveFuel() {
+    setFuelBusy(true);
+    setFuelMsg(null);
+    try {
+      const updated = await patch(`/admin/providers/${myZone.id}`, { fuel_price_tzs_per_liter: Number(fuelInput) });
+      setMyZone(updated);
+      setEditingFuel(false);
+      setFuelMsg({ ok: true, text: t("fuel_price_updated") });
+    } catch (e) {
+      setFuelMsg({ ok: false, text: e.message });
+    } finally {
+      setFuelBusy(false);
+    }
+  }
 
   // A super admin runs no single zone, so the live map (one depot) needs them to pick one.
   // A regular admin's own zone is used automatically - no picker needed.
@@ -108,6 +132,25 @@ export default function Overview() {
           </>
         ) : <p className="muted">{t("loading")}</p>}
       </div>
+
+      {!isSuperAdmin && myZone && (
+        <div className="card">
+          <h3>{t("fuel_price_card_title")}</h3>
+          {editingFuel ? (
+            <div className="row">
+              <input type="number" value={fuelInput} onChange={(e) => setFuelInput(e.target.value)} style={{ width: 140 }} />
+              <button className="btn" disabled={fuelBusy} onClick={saveFuel}>{t("save")}</button>
+              <button className="btn ghost" disabled={fuelBusy} onClick={() => setEditingFuel(false)}>{t("cancel")}</button>
+            </div>
+          ) : (
+            <div className="row" style={{ alignItems: "center" }}>
+              <b>TZS {Number(myZone.fuel_price_tzs_per_liter).toLocaleString()} / {t("liter_short")}</b>
+              <button className="btn ghost" onClick={() => { setFuelInput(String(myZone.fuel_price_tzs_per_liter)); setEditingFuel(true); }}>{t("edit_btn")}</button>
+            </div>
+          )}
+          {fuelMsg && <p className={fuelMsg.ok ? "ok" : "err"}>{fuelMsg.text}</p>}
+        </div>
+      )}
     </>
   );
 }

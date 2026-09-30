@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { homeFor, useAuth } from "./auth.jsx";
 import { useI18n } from "./useI18n";
 import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ChangePassword from "./pages/ChangePassword.jsx";
 import SelfRegister from "./pages/SelfRegister.jsx";
 import Admin from "./pages/Admin.jsx";
 import Driver from "./pages/Driver.jsx";
@@ -22,7 +24,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/register" element={<SelfRegister />} />
+      <Route path="/change-password" element={<Protected role={["admin", "super_admin", "resident", "driver"]}><ChangePassword /></Protected>} />
       <Route path="/admin" element={<Protected role={["admin", "super_admin"]}><Admin /></Protected>} />
       <Route path="/driver" element={<Protected role="driver"><Driver /></Protected>} />
       <Route path="/me" element={<Protected role="resident"><Resident /></Protected>} />

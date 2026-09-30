@@ -1,4 +1,7 @@
-"""Login, self-registration (residents) and 'who am I'."""
+"""Login, self-registration (residents), password self-service, and 'who am I'."""
+import random
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
@@ -7,12 +10,16 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.phone import normalize_phone
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.models.customer import Customer
 from app.models.provider import ServiceProvider
 from app.models.user import User
-from app.schemas import CustomerCreate, CustomerOut, TokenOut
+from app.schemas import (
+    ChangePasswordRequest, CustomerCreate, CustomerOut, ForgotPasswordRequest,
+    ResetPasswordRequest, TokenOut,
+)
 from app.services.customers import create_customer
+from app.sms.service import get_sms_provider
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -56,3 +63,58 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
         "customer": CustomerOut.model_validate(customer).model_dump() if customer else None,
         "monthly_fee_tzs": settings.MONTHLY_FEE_TZS,
     }
+
+
+# ---------- password: change (logged in) and forgot/reset (via SMS code) ----------
+@router.post("/change-password")
+def change_password(data: ChangePasswordRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Any logged-in user (customer, admin or super admin) changes their own password."""
+    if not verify_password(data.current_password, user.password_hash):
+        raise HTTPException(401, "Current password is wrong")
+    user.password_hash = hash_password(data.new_password)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/forgot-password")
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Texts a 6-digit code to the phone on file, valid for 10 minutes. Always answers the
+    same way whether or not that phone is registered, so this can't be used to check who
+    has an account."""
+    try:
+        phone = normalize_phone(data.phone)
+    except ValueError:
+        phone = data.phone
+    user = db.scalar(select(User).where(User.phone == phone, User.is_active.is_(True)))
+    if user is not None:
+        code = f"{random.randint(0, 999999):06d}"
+        user.reset_otp_code = code
+        user.reset_otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        db.commit()
+        try:
+            get_sms_provider().send(phone, f"Smart Taka: Msimbo wako wa kubadili password ni {code}. Ni halali kwa dakika 10 tu.")
+        except RuntimeError:
+            pass  # SMS not configured in this environment - the code still works if support reads it from the DB
+    return {"ok": True, "message": "If that phone number is registered, a code has been sent to it."}
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        phone = normalize_phone(data.phone)
+    except ValueError:
+        phone = data.phone
+    user = db.scalar(select(User).where(User.phone == phone, User.is_active.is_(True)))
+    if user is None or user.reset_otp_code is None or user.reset_otp_code != data.otp_code:
+        raise HTTPException(400, "That code is wrong or has expired")
+    expires_at = user.reset_otp_expires_at
+    if expires_at is not None and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)  # SQLite drops tzinfo on the way back
+    if expires_at is None or expires_at < datetime.now(timezone.utc):
+        raise HTTPException(400, "That code is wrong or has expired")
+        raise HTTPException(400, "That code is wrong or has expired")
+    user.password_hash = hash_password(data.new_password)
+    user.reset_otp_code = None
+    user.reset_otp_expires_at = None
+    db.commit()
+    return {"ok": True}

@@ -30,4 +30,7 @@ class User(Base):
     # (a customer's zone lives on their Customer row instead, since one login could in theory
     # apply to either - in practice only admin/driver logins use this column).
     provider_id: Mapped[Optional[int]] = mapped_column(ForeignKey("providers.id"), nullable=True, index=True)
+    # "Forgot password" flow: a one-time code texted to their phone, valid for a few minutes.
+    reset_otp_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    reset_otp_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

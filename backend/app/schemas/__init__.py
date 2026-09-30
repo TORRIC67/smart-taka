@@ -81,6 +81,27 @@ class ProviderCreate(BaseModel):
     fuel_price_tzs_per_liter: int = Field(gt=0)
 
 
+class ProviderUpdate(BaseModel):
+    fuel_price_tzs_per_liter: Optional[int] = Field(default=None, gt=0)
+    depot_latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    depot_longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+class ForgotPasswordRequest(BaseModel):
+    phone: str
+
+
+class ResetPasswordRequest(BaseModel):
+    phone: str
+    otp_code: str = Field(min_length=6, max_length=6)
+    new_password: str = Field(min_length=8, max_length=72)
+
+
 class ComplaintCreate(BaseModel):
     rating: int = Field(ge=1, le=5)
     message: str = Field(min_length=1, max_length=1000)
