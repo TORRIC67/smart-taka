@@ -6,7 +6,7 @@ data - enforced by get_optional_scope()/get_required_provider() and the ownershi
 below. A super admin sees everything, or one zone at a time via ?provider_id=."""
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,6 +21,7 @@ from app.models.provider import ServiceProvider
 from app.models.route import CollectionStop, Route
 from app.models.user import Role, User
 from app.models.waste_bin import WasteBin
+from app.models.webhook_log import WebhookLog
 from app.routing.planner import complete_stop, route_details, stop_dict
 from app.schemas import (
     AdminCreate, AdminOut, BinCreate, BinOut, BinUpdate, CustomerCreate, CustomerOut,
@@ -29,6 +30,7 @@ from app.schemas import (
 )
 from app.services.billing import today_tz
 from app.services.customers import create_customer
+from app.services.reports_pdf import build_collections_report_pdf, build_customer_statement_pdf
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_roles(*Role.ADMINS))])
 super_admin_only = Depends(require_roles(Role.SUPER_ADMIN))
@@ -356,6 +358,19 @@ def customer_payment_history(customer_id: int, scope: Optional[int] = Depends(ge
     return db.scalars(select(Payment).where(Payment.customer_id == customer_id).order_by(Payment.created_at.desc())).all()
 
 
+@router.get("/customers/{customer_id}/payments/pdf")
+def customer_payment_history_pdf(customer_id: int, scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
+    """Downloadable/printable statement for one customer (their full payment history)."""
+    customer = _owned_customer(db, customer_id, scope)
+    payments = db.scalars(select(Payment).where(Payment.customer_id == customer_id).order_by(Payment.created_at.desc())).all()
+    zone = db.get(ServiceProvider, customer.provider_id) if customer.provider_id else None
+    pdf_bytes = build_customer_statement_pdf(customer, payments, zone.name if zone else "-")
+    return Response(
+        content=pdf_bytes, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="statement-{customer.id}.pdf"'},
+    )
+
+
 @router.get("/bins", response_model=List[BinOut])
 def list_bins(include_inactive: bool = False, scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
     q = select(WasteBin)
@@ -523,16 +538,11 @@ def live_map(provider: ServiceProvider = Depends(get_required_provider), db: Ses
 
 
 # ---------- money reports: monthly / quarterly / annual, per zone and system-wide ----------
-@router.get("/reports/collections")
-def collections_report(
-    granularity: str = "month",  # month | quarter | year
-    scope: Optional[int] = Depends(get_optional_scope),
-    db: Session = Depends(get_db),
-):
+def _collections_report_data(granularity: str, scope: Optional[int], db: Session) -> dict:
     if granularity not in ("month", "quarter", "year"):
         raise HTTPException(400, "granularity must be month, quarter or year")
 
-    q = select(Payment.billing_period, Payment.amount).where(Payment.status == "completed")
+    q = select(Payment.billing_period, Payment.amount).where(Payment.status == "completed", Payment.purpose == "monthly_bill")
     if scope is not None:
         q = q.where(Payment.provider_id == scope)
     buckets: dict[str, dict] = {}
@@ -554,7 +564,7 @@ def collections_report(
         pq = (
             select(ServiceProvider.id, ServiceProvider.name, func.coalesce(func.sum(Payment.amount), 0))
             .select_from(ServiceProvider)
-            .outerjoin(Payment, (Payment.provider_id == ServiceProvider.id) & (Payment.status == "completed"))
+            .outerjoin(Payment, (Payment.provider_id == ServiceProvider.id) & (Payment.status == "completed") & (Payment.purpose == "monthly_bill"))
             .group_by(ServiceProvider.id, ServiceProvider.name)
             .order_by(ServiceProvider.name)
         )
@@ -562,3 +572,46 @@ def collections_report(
             {"provider_id": pid, "name": name, "total_tzs": total} for pid, name, total in db.execute(pq).all()
         ]
     return result
+
+
+@router.get("/reports/collections")
+def collections_report(
+    granularity: str = "month",  # month | quarter | year
+    scope: Optional[int] = Depends(get_optional_scope),
+    db: Session = Depends(get_db),
+):
+    return _collections_report_data(granularity, scope, db)
+
+
+@router.get("/reports/collections/pdf")
+def collections_report_pdf(
+    granularity: str = "month",
+    scope: Optional[int] = Depends(get_optional_scope),
+    db: Session = Depends(get_db),
+):
+    """Downloadable/printable PDF of the same report - one zone's, or every zone's for a
+    super admin. Opens in the browser's own PDF viewer, which can print it directly."""
+    data = _collections_report_data(granularity, scope, db)
+    if scope is None:
+        zone_name = "All zones"
+    else:
+        zone = db.get(ServiceProvider, scope)
+        zone_name = zone.name if zone else "-"
+    pdf_bytes = build_collections_report_pdf(data["rows"], granularity, zone_name, data.get("by_provider"))
+    return Response(
+        content=pdf_bytes, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="collections-{granularity}.pdf"'},
+    )
+
+
+# ---------- webhook debugging (super admin only: this is raw technical data, not zone data) ----------
+@router.get("/webhook-logs", dependencies=[super_admin_only])
+def webhook_logs(limit: int = 50, db: Session = Depends(get_db)):
+    rows = db.scalars(select(WebhookLog).order_by(WebhookLog.id.desc()).limit(min(limit, 200))).all()
+    return [
+        {
+            "id": r.id, "source": r.source, "order_id": r.order_id, "processed": r.processed,
+            "error": r.error, "created_at": r.created_at, "raw_payload": r.raw_payload[:1000],
+        }
+        for r in rows
+    ]

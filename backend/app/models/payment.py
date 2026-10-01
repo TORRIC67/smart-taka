@@ -31,6 +31,9 @@ class Payment(Base):
     fee: Mapped[int] = mapped_column(default=0)
     net_amount: Mapped[int] = mapped_column(default=0)
 
+    # "monthly_bill" (the normal case) or "wallet_topup" (adds to the customer's wallet
+    # instead of marking a bill paid - see on_payment_completed()).
+    purpose: Mapped[str] = mapped_column(String(20), default="monthly_bill")
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

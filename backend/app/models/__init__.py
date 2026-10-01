@@ -8,3 +8,4 @@ from app.models.route import CollectionStop, Route  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.waste_bin import WasteBin  # noqa: F401
 from app.models.sms_log import SmsLog  # noqa: F401
+from app.models.webhook_log import WebhookLog  # noqa: F401

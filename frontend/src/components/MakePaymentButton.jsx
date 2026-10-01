@@ -37,6 +37,8 @@ export default function MakePaymentButton({ customerId, alreadyPaid = false, onP
   // idle | sending | waiting | paid | failed | review | timeout | error
   const [state, setState] = useState(alreadyPaid ? "paid" : "idle");
   const [error, setError] = useState("");
+  const [altPhone, setAltPhone] = useState("");
+  const [showAltPhone, setShowAltPhone] = useState(false);
   const orderRef = useRef(null); // HarakaPay order_id of the payment we are waiting for
   const timerRef = useRef(null);
   const aliveRef = useRef(true); // false after unmount, so we don't update a dead component
@@ -72,7 +74,7 @@ export default function MakePaymentButton({ customerId, alreadyPaid = false, onP
     setState("sending");
     setError("");
     try {
-      const payment = await collectPayment(customerId);
+      const payment = await collectPayment(customerId, undefined, showAltPhone ? altPhone : undefined);
       if (!aliveRef.current) return;
       orderRef.current = payment.order_id;
       setState("waiting");
@@ -92,6 +94,17 @@ export default function MakePaymentButton({ customerId, alreadyPaid = false, onP
 
   return (
     <span style={styles.wrap}>
+      {state === "idle" && (
+        <>
+          {!showAltPhone ? (
+            <button type="button" style={{ ...styles.note, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }} onClick={() => setShowAltPhone(true)}>
+              {t("pay_different_phone_link")}
+            </button>
+          ) : (
+            <input type="tel" placeholder="0712345678" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} style={{ width: 140, fontSize: 13 }} />
+          )}
+        </>
+      )}
       {(state === "idle" || state === "failed" || state === "error") && (
         <button style={styles.btn} onClick={handlePay}>
           {state === "idle" ? t("pay_button") : t("pay_retry")}

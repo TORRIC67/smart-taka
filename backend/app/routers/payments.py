@@ -1,12 +1,15 @@
 """Payment endpoints.
 
   POST /payments/collect                 resident (self) or admin -> sends USSD push
+  POST /payments/wallet/topup            resident (self) or admin -> add money to wallet
+  POST /payments/wallet/pay-bill         resident (self) or admin -> pay this month from wallet
   POST /payments/webhooks/harakapay      called by HarakaPay only (secret token in URL)
   GET  /payments/balance                 admin only -> HarakaPay wallet/float
   POST /payments/reconcile               admin only -> re-check all pending payments
   GET  /payments/{order_id}              resident (own) or admin -> current status
 """
 import hmac
+import json
 import logging
 from datetime import datetime
 from functools import lru_cache
@@ -20,18 +23,23 @@ from sqlalchemy.orm import Session
 # Adjust these imports to match your project:
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
+from app.core.phone import normalize_phone
 from app.models.customer import Customer
 from app.models.payment import Payment
 from app.models.provider import ServiceProvider
 from app.models.user import Role
+from app.models.webhook_log import WebhookLog
 from app.payments.base import PaymentProvider, PaymentProviderError
 from app.payments.harakapay import HarakaPayProvider
 from app.payments.mock import MockProvider
 from app.payments.service import (
     AlreadyPaidError,
+    InsufficientWalletError,
     PaymentNotFoundError,
+    pay_bill_from_wallet,
     reconcile_pending,
     start_payment,
+    start_wallet_topup,
     sync_payment,
 )
 from app.schemas import PaymentHistoryOut
@@ -52,6 +60,20 @@ def get_provider() -> PaymentProvider:
 class CollectRequest(BaseModel):
     customer_id: int
     # "YYYY-MM"; defaults to the current month. Amount is NOT accepted from the client.
+    billing_period: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}$")
+    # Pay from a DIFFERENT phone just for this one payment (e.g. paying from a relative's
+    # line). This never changes the customer's account/login phone - use the admin's
+    # "edit customer" screen for that instead.
+    phone: Optional[str] = None
+
+
+class WalletTopupRequest(BaseModel):
+    customer_id: int
+    amount: int = Field(ge=1000)  # a trivially small top-up isn't worth a mobile-money fee
+
+
+class PayFromWalletRequest(BaseModel):
+    customer_id: int
     billing_period: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}$")
 
 
@@ -89,12 +111,18 @@ def collect(
         raise HTTPException(403, "Not allowed")
 
     period = body.billing_period or datetime.now().strftime("%Y-%m")
+    pay_phone = customer.phone
+    if body.phone:
+        try:
+            pay_phone = normalize_phone(body.phone)
+        except ValueError:
+            raise HTTPException(400, "Invalid phone number")
     try:
         return start_payment(
             db,
             provider,
             customer_id=customer.id,
-            phone=customer.phone,
+            phone=pay_phone,
             amount=settings.MONTHLY_FEE_TZS,  # fixed server-side so nobody can pay less
             billing_period=period,
             webhook_url=settings.HARAKAPAY_WEBHOOK_URL,
@@ -107,6 +135,55 @@ def collect(
         raise HTTPException(502, f"Payment provider error: {exc}")
 
 
+@router.post("/wallet/topup", response_model=PaymentOut)
+def wallet_topup(
+    body: WalletTopupRequest,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    provider: PaymentProvider = Depends(get_provider),
+):
+    """Sends a USSD push for the customer to add money to their Smart Taka wallet."""
+    customer = db.get(Customer, body.customer_id)
+    if customer is None:
+        raise HTTPException(404, "Customer not found")
+    if not _can_access(user, customer):
+        raise HTTPException(403, "Not allowed")
+    try:
+        return start_wallet_topup(
+            db, provider, customer_id=customer.id, phone=customer.phone, amount=body.amount,
+            webhook_url=settings.HARAKAPAY_WEBHOOK_URL, provider_id=customer.provider_id,
+        )
+    except PaymentProviderError as exc:
+        raise HTTPException(502, f"Payment provider error: {exc}")
+
+
+@router.post("/wallet/pay-bill", response_model=PaymentOut)
+def wallet_pay_bill(body: PayFromWalletRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Pays this month's bill instantly from the customer's wallet balance - no phone approval needed."""
+    customer = db.get(Customer, body.customer_id)
+    if customer is None:
+        raise HTTPException(404, "Customer not found")
+    if not _can_access(user, customer):
+        raise HTTPException(403, "Not allowed")
+    period = body.billing_period or datetime.now().strftime("%Y-%m")
+    try:
+        return pay_bill_from_wallet(db, customer=customer, billing_period=period, fee_amount=settings.MONTHLY_FEE_TZS)
+    except AlreadyPaidError:
+        raise HTTPException(409, "Already paid for this period")
+    except InsufficientWalletError:
+        raise HTTPException(400, "Wallet balance is not enough for this bill")
+
+
+@router.get("/wallet")
+def my_wallet(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role != Role.RESIDENT:
+        raise HTTPException(403, "Residents only")
+    customer = db.scalar(select(Customer).where(Customer.user_id == user.id))
+    if customer is None:
+        raise HTTPException(404, "No customer profile for this user")
+    return {"wallet_balance_tzs": customer.wallet_balance_tzs}
+
+
 @router.post("/webhooks/harakapay")
 def harakapay_webhook(
     payload: dict = Body(...),
@@ -114,20 +191,34 @@ def harakapay_webhook(
     db: Session = Depends(get_db),
     provider: PaymentProvider = Depends(get_provider),
 ):
+    # Save exactly what arrived BEFORE doing anything else with it - if processing fails
+    # below (or the token check fails), this row still shows what HarakaPay actually sent.
+    order_id = payload.get("order_id")
+    entry = WebhookLog(source="harakapay", order_id=str(order_id) if order_id else None, raw_payload=json.dumps(payload)[:8000])
+    db.add(entry)
+    db.commit()
+
     # HarakaPay docs mention no signature, so the URL carries a secret token instead.
     if not hmac.compare_digest(token, settings.HARAKAPAY_WEBHOOK_TOKEN):
+        entry.error = "invalid webhook token"
+        db.commit()
         raise HTTPException(403, "Forbidden")
 
-    order_id = payload.get("order_id")
     if order_id:
         try:
             # The body is only a hint. sync_payment re-checks the real status with HarakaPay.
             sync_payment(db, provider, str(order_id))
+            entry.processed = True
         except PaymentNotFoundError:
+            entry.error = f"unknown order_id {order_id}"
             log.warning("Webhook for unknown order_id %s", order_id)
-        except Exception:
+        except Exception as exc:
             # Still answer 200 (HarakaPay only wants a 200); reconcile_pending will retry it.
+            entry.error = str(exc)[:2000]
             log.exception("Webhook processing failed for %s", order_id)
+    else:
+        entry.error = "no order_id in payload"
+    db.commit()
     return {"ok": True}
 
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { get } from "../../api/client";
+import { downloadFile, get } from "../../api/client";
 import { useAuth } from "../../auth.jsx";
 import { useI18n } from "../../useI18n";
 
@@ -13,6 +13,9 @@ export default function Reports() {
   const [error, setError] = useState("");
   const isSuperAdmin = user?.role === "super_admin";
 
+  const [webhooks, setWebhooks] = useState(null);
+  const [showWebhooks, setShowWebhooks] = useState(false);
+
   const load = useCallback(async () => {
     setError("");
     try {
@@ -22,6 +25,15 @@ export default function Reports() {
     }
   }, [granularity]);
   useEffect(() => { load(); }, [load]);
+
+  async function loadWebhooks() {
+    setShowWebhooks(true);
+    try {
+      setWebhooks(await get("/admin/webhook-logs?limit=30"));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
 
   const rows = data?.rows || [];
   const max = Math.max(1, ...rows.map((r) => r.amount_tzs));
@@ -34,6 +46,9 @@ export default function Reports() {
             {t(`granularity_${g}`)}
           </button>
         ))}
+        <button className="btn ghost" onClick={() => downloadFile(`/admin/reports/collections/pdf?granularity=${granularity}`, `collections-${granularity}.pdf`)}>
+          {t("download_pdf_btn")}
+        </button>
       </div>
       {error && <p className="err">{error}</p>}
 
@@ -63,6 +78,33 @@ export default function Reports() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {isSuperAdmin && (
+        <div className="card">
+          <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ margin: 0 }}>{t("webhook_logs_title")}</h3>
+            {!showWebhooks && <button className="btn ghost" onClick={loadWebhooks}>{t("show_btn")}</button>}
+          </div>
+          {showWebhooks && webhooks && (
+            <div className="table-wrap" style={{ marginTop: 10 }}>
+              <table>
+                <thead><tr><th>{t("th_time")}</th><th>{t("th_order_id")}</th><th>{t("th_status")}</th><th>{t("th_error")}</th></tr></thead>
+                <tbody>
+                  {webhooks.map((w) => (
+                    <tr key={w.id}>
+                      <td>{new Date(w.created_at).toLocaleString()}</td>
+                      <td>{w.order_id || "-"}</td>
+                      <td><span className={`badge ${w.processed ? "paid" : ""}`}>{w.processed ? t("webhook_processed") : t("webhook_not_processed")}</span></td>
+                      <td className="muted">{w.error || "-"}</td>
+                    </tr>
+                  ))}
+                  {webhooks.length === 0 && <tr><td colSpan={4} className="muted">{t("no_webhook_logs")}</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </>

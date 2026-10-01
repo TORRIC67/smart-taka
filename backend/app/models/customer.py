@@ -27,6 +27,9 @@ class Customer(Base):
     longitude: Mapped[float]
     provider_id: Mapped[Optional[int]] = mapped_column(ForeignKey("providers.id"), nullable=True, index=True)
     payment_status: Mapped[str] = mapped_column(String(20), default=PaymentStatus.REGISTERED, index=True)
+    # Extra money the customer has pre-paid. Monthly bills can be paid from this
+    # instead of a fresh mobile-money push; a top-up (or an overpayment) adds to it.
+    wallet_balance_tzs: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped[User] = relationship()

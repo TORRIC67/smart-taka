@@ -384,6 +384,28 @@ const dict = {
   fuel_price_card_title: { sw: "Bei ya mafuta ya kanda yako", en: "Your zone's fuel price", fr: "Prix du carburant de votre zone" },
   fuel_price_updated: { sw: "Bei ya mafuta imesasishwa.", en: "Fuel price updated.", fr: "Prix du carburant mis à jour." },
   liter_short: { sw: "lita", en: "litre", fr: "litre" },
+
+  // ---- v4: reports/pdf, webhook logs, wallet, phone-override ----
+  download_pdf_btn: { sw: "Pakua PDF", en: "Download PDF", fr: "Télécharger le PDF" },
+  download_statement_btn: { sw: "Pakua taarifa", en: "Download statement", fr: "Télécharger le relevé" },
+  webhook_logs_title: { sw: "Mapokezi ya Payment Provider (webhook)", en: "Payment provider webhook logs", fr: "Journaux webhook du fournisseur de paiement" },
+  show_btn: { sw: "Onyesha", en: "Show", fr: "Afficher" },
+  th_time: { sw: "Muda", en: "Time", fr: "Heure" },
+  th_order_id: { sw: "Order ID", en: "Order ID", fr: "Order ID" },
+  th_error: { sw: "Hitilafu", en: "Error", fr: "Erreur" },
+  webhook_processed: { sw: "imechakatwa", en: "processed", fr: "traité" },
+  webhook_not_processed: { sw: "haijachakatwa", en: "not processed", fr: "non traité" },
+  no_webhook_logs: { sw: "Hakuna mapokezi bado.", en: "No webhook calls yet.", fr: "Aucun appel webhook pour le moment." },
+
+  pay_different_phone_link: { sw: "Lipa kwa namba nyingine?", en: "Pay from a different phone?", fr: "Payer depuis un autre numéro ?" },
+
+  wallet_title: { sw: "Wallet yangu", en: "My wallet", fr: "Mon portefeuille" },
+  wallet_balance_label: { sw: "salio la sasa", en: "current balance", fr: "solde actuel" },
+  topup_amount_placeholder: { sw: "Kiasi (TZS)", en: "Amount (TZS)", fr: "Montant (TZS)" },
+  topup_submit_btn: { sw: "Ongeza kwenye wallet", en: "Add to wallet", fr: "Ajouter au portefeuille" },
+  pay_from_wallet_btn: { sw: "Lipa kutoka wallet", en: "Pay from wallet", fr: "Payer depuis le portefeuille" },
+  paid_from_wallet_success: { sw: "Imelipwa kwa mafanikio kutoka wallet.", en: "Paid successfully from your wallet.", fr: "Payé avec succès depuis votre portefeuille." },
+  wallet_topup_label: { sw: "Kuongeza kwenye wallet", en: "Wallet top-up", fr: "Recharge du portefeuille" },
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

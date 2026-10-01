@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import MakePaymentButton from "../../components/MakePaymentButton.jsx";
-import { del, get, patch, post } from "../../api/client";
+import { del, downloadFile, get, patch, post } from "../../api/client";
 import { useI18n } from "../../useI18n";
 
 function billingSummary(r, t) {
@@ -195,6 +195,7 @@ export default function Residents() {
                           )}
                           {/* Sends the USSD payment prompt to the customer's phone */}
                           <MakePaymentButton customerId={r.id} alreadyPaid={r.payment_status === "paid"} onPaid={load} />
+                          <button className="btn ghost" onClick={() => downloadFile(`/admin/customers/${r.id}/payments/pdf`, `statement-${r.id}.pdf`)}>{t("download_statement_btn")}</button>
                           <button className="btn ghost" disabled={busy} onClick={() => setEditingId(r.id)}>{t("edit_btn")}</button>
                           <button className="btn ghost" style={{ color: "var(--red)", borderColor: "var(--red)" }}
                                   disabled={busy} onClick={() => remove(r)}>{t("remove_btn")}</button>
