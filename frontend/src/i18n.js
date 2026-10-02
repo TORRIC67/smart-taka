@@ -406,6 +406,8 @@ const dict = {
   pay_from_wallet_btn: { sw: "Lipa kutoka wallet", en: "Pay from wallet", fr: "Payer depuis le portefeuille" },
   paid_from_wallet_success: { sw: "Imelipwa kwa mafanikio kutoka wallet.", en: "Paid successfully from your wallet.", fr: "Payé avec succès depuis votre portefeuille." },
   wallet_topup_label: { sw: "Kuongeza kwenye wallet", en: "Wallet top-up", fr: "Recharge du portefeuille" },
+  sidebar_tagline: { sw: "Miji Safi, Maisha Bora", en: "Clean Cities, Healthy Lives", fr: "Villes propres, vies saines" },
+
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

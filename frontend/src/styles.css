@@ -55,3 +55,67 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-r
 .seq { width: 28px; height: 28px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 13px; flex: none; }
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 8px 0 0; flex-wrap: wrap; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+
+/* ---------------------------------------------------------------- */
+/* Admin dashboard: dark sidebar layout (visual only - no behavior   */
+/* change). Everything above this line is untouched and still used   */
+/* by Login/Driver/Resident/forms exactly as before.                 */
+/* ---------------------------------------------------------------- */
+:root {
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --page-bg: #f8fafc;
+}
+
+/* Light, app-wide polish: softer shadows and slightly rounder corners.
+   Colors (including every .badge.*) are intentionally left exactly as they were. */
+.card, .stat, .table-wrap {
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.btn { border-radius: 8px; transition: background 0.15s ease, transform 0.05s ease; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+.admin-shell { display: flex; min-height: 100vh; background: var(--page-bg); }
+
+.admin-sidebar {
+  width: 240px; flex: none; background: var(--sidebar-bg); color: #fff;
+  display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0;
+  overflow-y: auto; z-index: 1100; transition: transform 0.2s ease; /* above Leaflet's own controls (~1000) */
+}
+.admin-sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 20px; font-weight: 700; font-size: 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.admin-sidebar-brand small { display: block; color: var(--sidebar-text); font-weight: 400; font-size: 11px; }
+
+.admin-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.admin-nav-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: transparent; border: 0; color: var(--sidebar-text); padding: 10px 14px;
+  border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit;
+}
+.admin-nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.admin-nav-item.active { background: var(--green); color: #fff; font-weight: 600; }
+.admin-nav-item svg { flex: none; }
+
+.admin-sidebar-footer { padding: 14px 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+
+.admin-main { flex: 1; min-width: 0; margin-left: 240px; display: flex; flex-direction: column; min-height: 100vh; }
+.admin-topbar {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+  background: #fff; padding: 14px 24px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 20;
+}
+.admin-topbar .who-name { font-size: 14px; color: var(--ink); margin-right: 4px; }
+.admin-content { flex: 1; width: 100%; max-width: 1300px; margin: 0 auto; padding: 24px; }
+.admin-sidebar-toggle, .admin-sidebar-close { display: none; background: none; border: 0; cursor: pointer; padding: 6px; }
+
+.admin-sidebar-overlay { display: none; }
+
+@media (max-width: 900px) {
+  .admin-sidebar { transform: translateX(-100%); box-shadow: 2px 0 12px rgba(0,0,0,0.15); }
+  .admin-sidebar.open { transform: translateX(0); }
+  .admin-main { margin-left: 0; }
+  .admin-sidebar-toggle, .admin-sidebar-close { display: inline-flex; align-items: center; }
+  .admin-sidebar-overlay.open { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1050; }
+  .admin-content { padding: 16px; }
+}
