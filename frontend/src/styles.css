@@ -66,7 +66,6 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-r
   --sidebar-text: #94a3b8;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
   --page-bg: #f8fafc;
-  --topbar-bg: #46832d;
 }
 
 /* Light, app-wide polish: softer shadows and slightly rounder corners.
@@ -103,7 +102,8 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-r
 .admin-main { flex: 1; min-width: 0; margin-left: 240px; display: flex; flex-direction: column; min-height: 100vh; }
 .admin-topbar {
   display: flex; align-items: center; justify-content: flex-end; gap: 10px;
-  background: #fff; padding: 14px 24px; border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%);
+  padding: 14px 24px; border-bottom: 1px solid #d1fae5;
   position: sticky; top: 0; z-index: 20;
 }
 .admin-topbar .who-name { font-size: 14px; color: var(--ink); margin-right: 4px; }
@@ -120,3 +120,88 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-r
   .admin-sidebar-overlay.open { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1050; }
   .admin-content { padding: 16px; }
 }
+
+/* ---------------------------------------------------------------- */
+/* Resident (customer) dashboard: extra visual richness for demos.   */
+/* Status colors still match the originals (green=paid, amber=billed,*/
+/* gray=registered) - only presentation (size/shadow/animation/icon) */
+/* is enhanced here.                                                  */
+/* ---------------------------------------------------------------- */
+@keyframes stk-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes stk-pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  70% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes stk-shine {
+  0% { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
+
+.resident-page .card {
+  animation: stk-fade-up 0.45s ease both;
+}
+.resident-page .card:nth-of-type(1) { animation-delay: 0.02s; }
+.resident-page .card:nth-of-type(2) { animation-delay: 0.10s; }
+.resident-page .card:nth-of-type(3) { animation-delay: 0.18s; }
+.resident-page .card:nth-of-type(4) { animation-delay: 0.26s; }
+
+.resident-hero {
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 55%, #22c55e 100%);
+  color: #fff; border: none;
+  box-shadow: 0 10px 24px rgba(21, 128, 61, 0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+  position: relative; overflow: hidden;
+}
+.resident-hero h2 { color: #fff; }
+.resident-hero .muted { color: rgba(255,255,255,0.85); }
+.resident-hero .pay-alt-phone-link { color: rgba(255,255,255,0.9) !important; }
+.resident-hero input[type="tel"] { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.5); color: #fff; }
+.resident-hero input[type="tel"]::placeholder { color: rgba(255,255,255,0.6); }
+
+.resident-status-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: 14px;
+  background: rgba(255,255,255,0.18); color: #fff;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.12);
+  animation: stk-pop 0.5s ease 0.1s both;
+}
+.resident-status-pill.is-paid { background: rgba(255,255,255,0.22); }
+
+.wallet-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%);
+  color: #fff; border: none; position: relative; overflow: hidden;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.wallet-card::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.10) 35%, transparent 50%);
+  background-size: 200% 100%;
+  animation: stk-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.wallet-card h3 { color: rgba(255,255,255,0.85); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+.wallet-card .wallet-balance { font-size: 34px; font-weight: 800; letter-spacing: 0.02em; text-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.wallet-card input, .wallet-card button.btn.ghost { position: relative; z-index: 1; }
+.wallet-card input {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff;
+}
+.wallet-card input::placeholder { color: rgba(255,255,255,0.55); }
+
+.stk-icon-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 12px; flex: none;
+  background: var(--green-soft); color: var(--green-dark);
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.06);
+}
+
+.resident-page .btn {
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+.resident-page .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3); }
+.resident-page .btn.ghost { box-shadow: none; }
+
+.resident-page table tbody tr { transition: background 0.15s ease; }
+.resident-page table tbody tr:hover { background: #f8fafc; }

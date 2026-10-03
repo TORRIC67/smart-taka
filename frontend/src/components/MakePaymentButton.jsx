@@ -97,7 +97,7 @@ export default function MakePaymentButton({ customerId, alreadyPaid = false, onP
       {state === "idle" && (
         <>
           {!showAltPhone ? (
-            <button type="button" style={{ ...styles.note, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }} onClick={() => setShowAltPhone(true)}>
+            <button type="button" className="pay-alt-phone-link" style={{ ...styles.note, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }} onClick={() => setShowAltPhone(true)}>
               {t("pay_different_phone_link")}
             </button>
           ) : (

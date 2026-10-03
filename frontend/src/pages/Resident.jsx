@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, Clock, CreditCard, Download, Send, Smartphone, Wallet as WalletIcon } from "lucide-react";
 import Layout from "../components/Layout.jsx";
 import MakePaymentButton from "../components/MakePaymentButton.jsx";
 import { useAuth } from "../auth.jsx";
@@ -98,7 +99,7 @@ export default function Resident() {
   }
 
   const STATUS_TEXT = { registered: t("status_registered"), billed: t("status_billed"), paid: t("status_paid") };
-  const STATUS_BADGE = { registered: t("status_badge_registered"), billed: t("status_badge_billed"), paid: t("status_badge_paid") };
+  const STATUS_ICON = { registered: <Clock size={16} />, billed: <Clock size={16} />, paid: <CheckCircle2 size={16} /> };
 
   async function sendComplaint(e) {
     e.preventDefault();
@@ -116,76 +117,88 @@ export default function Resident() {
 
   return (
     <Layout>
-      <div className="card">
-        <h2>{t("welcome", { name: user.full_name })}</h2>
-        <p className="muted">{customer.ward}{customer.address ? `, ${customer.address}` : ""}</p>
-        <p>
-          <span className={`badge ${customer.payment_status}`}>{STATUS_BADGE[customer.payment_status]}</span>{" "}
-          {STATUS_TEXT[customer.payment_status]}
-        </p>
-        <p>{t("monthly_fee_label")} <strong>TZS {Number(user.monthly_fee_tzs).toLocaleString()}</strong></p>
-        {/* After payment completes we reload the profile so the status changes to "paid" */}
-        <div className="row" style={{ alignItems: "center" }}>
-          <MakePaymentButton
-            customerId={customer.id}
-            alreadyPaid={customer.payment_status === "paid"}
-            onPaid={() => { refresh(); reloadPayments(); }}
-          />
-          {canPayFromWallet && (
-            <button className="btn ghost" disabled={payFromWalletBusy} onClick={payFromWallet}>
-              {payFromWalletBusy ? t("saving") : t("pay_from_wallet_btn")}
-            </button>
+      <div className="resident-page">
+        <div className="card resident-hero">
+          <h2 style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {t("welcome", { name: user.full_name })}
+          </h2>
+          <p className="muted">{customer.ward}{customer.address ? `, ${customer.address}` : ""}</p>
+          <div className="row" style={{ alignItems: "center", margin: "10px 0 16px" }}>
+            <span className={`resident-status-pill ${customer.payment_status === "paid" ? "is-paid" : ""}`}>
+              {STATUS_ICON[customer.payment_status]} {STATUS_TEXT[customer.payment_status]}
+            </span>
+          </div>
+          <p style={{ fontSize: 15 }}>{t("monthly_fee_label")} <strong style={{ fontSize: 20 }}>TZS {Number(user.monthly_fee_tzs).toLocaleString()}</strong></p>
+          <div className="row" style={{ alignItems: "center" }}>
+            <MakePaymentButton
+              customerId={customer.id}
+              alreadyPaid={customer.payment_status === "paid"}
+              onPaid={() => { refresh(); reloadPayments(); }}
+            />
+            {canPayFromWallet && (
+              <button className="btn ghost" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderColor: "rgba(255,255,255,0.6)" }} disabled={payFromWalletBusy} onClick={payFromWallet}>
+                <WalletIcon size={15} style={{ marginRight: 6, verticalAlign: -2 }} />
+                {payFromWalletBusy ? t("saving") : t("pay_from_wallet_btn")}
+              </button>
+            )}
+          </div>
+          {msg && <p className={msg.ok ? "ok" : "err"} style={{ color: msg.ok ? "#dcfce7" : "#fecaca", fontWeight: 600 }}>{msg.text}</p>}
+        </div>
+
+        <div className="card wallet-card">
+          <h3><WalletIcon size={14} style={{ verticalAlign: -2, marginRight: 6 }} />{t("wallet_title")}</h3>
+          <p className="wallet-balance">TZS {Number(wallet ?? 0).toLocaleString()}</p>
+          <WalletTopup customerId={customer.id} onDone={reloadWallet} />
+        </div>
+
+        <div className="card">
+          <h3 style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="stk-icon-badge"><CreditCard size={18} /></span>
+            {t("payment_history_title")}
+          </h3>
+          {payments.length === 0 && <p className="muted">{t("no_payments_yet")}</p>}
+          {payments.length > 0 && (
+            <table>
+              <thead>
+                <tr><th>{t("th_period")}</th><th>{t("th_amount")}</th><th>{t("th_status")}</th><th></th></tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr key={p.order_id}>
+                    <td>{p.billing_period === "WALLET" ? t("wallet_topup_label") : p.billing_period}</td>
+                    <td>TZS {Number(p.amount).toLocaleString()}</td>
+                    <td><span className={`badge ${p.status === "completed" ? "paid" : ""}`}>{p.status}</span></td>
+                    <td>
+                      {p.status === "completed" && p.billing_period !== "WALLET" && (
+                        <button type="button" className="btn ghost" disabled={receiptBusy === p.order_id} onClick={() => downloadReceipt(p.order_id)}>
+                          <Download size={14} style={{ marginRight: 5, verticalAlign: -2 }} />
+                          {receiptBusy === p.order_id ? t("saving") : t("download_receipt_btn")}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-        {msg && <p className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
-      </div>
 
-      <div className="card">
-        <h3>{t("wallet_title")}</h3>
-        <p><b>TZS {Number(wallet ?? 0).toLocaleString()}</b> <span className="muted">{t("wallet_balance_label")}</span></p>
-        <WalletTopup customerId={customer.id} onDone={reloadWallet} />
+        <form className="card form" onSubmit={sendComplaint}>
+          <h3 style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="stk-icon-badge"><Send size={16} /></span>
+            {t("complaint_title")}
+          </h3>
+          <label>{t("service_rating_label")}
+            <select value={rating} onChange={(e) => setRating(e.target.value)}>
+              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} / 5</option>)}
+            </select>
+          </label>
+          <label>{t("message_label")}
+            <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} required />
+          </label>
+          <button className="btn"><Send size={14} style={{ marginRight: 6, verticalAlign: -2 }} />{t("send")}</button>
+        </form>
       </div>
-
-      <div className="card">
-        <h3>{t("payment_history_title")}</h3>
-        {payments.length === 0 && <p className="muted">{t("no_payments_yet")}</p>}
-        {payments.length > 0 && (
-          <table>
-            <thead>
-              <tr><th>{t("th_period")}</th><th>{t("th_amount")}</th><th>{t("th_status")}</th><th></th></tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.order_id}>
-                  <td>{p.billing_period === "WALLET" ? t("wallet_topup_label") : p.billing_period}</td>
-                  <td>TZS {Number(p.amount).toLocaleString()}</td>
-                  <td><span className={`badge ${p.status === "completed" ? "paid" : ""}`}>{p.status}</span></td>
-                  <td>
-                    {p.status === "completed" && p.billing_period !== "WALLET" && (
-                      <button type="button" className="btn ghost" disabled={receiptBusy === p.order_id} onClick={() => downloadReceipt(p.order_id)}>
-                        {receiptBusy === p.order_id ? t("saving") : t("download_receipt_btn")}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <form className="card form" onSubmit={sendComplaint}>
-        <h3>{t("complaint_title")}</h3>
-        <label>{t("service_rating_label")}
-          <select value={rating} onChange={(e) => setRating(e.target.value)}>
-            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} / 5</option>)}
-          </select>
-        </label>
-        <label>{t("message_label")}
-          <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} required />
-        </label>
-        <button className="btn">{t("send")}</button>
-      </form>
     </Layout>
   );
 }
