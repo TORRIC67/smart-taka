@@ -66,6 +66,7 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-r
   --sidebar-text: #94a3b8;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
   --page-bg: #f8fafc;
+  --topbar-bg: #46832d;
 }
 
 /* Light, app-wide polish: softer shadows and slightly rounder corners.
