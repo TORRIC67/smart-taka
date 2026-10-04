@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Users, UserPlus, Trash2, Truck, Route, MessageSquare,
-  BarChart3, Shield, Building2,
+  BarChart3, Shield, Building2, Footprints,
 } from "lucide-react";
 import AdminLayout from "../components/AdminLayout.jsx";
 import Overview from "./admin/Overview.jsx";
@@ -14,6 +14,7 @@ import Complaints from "./admin/Complaints.jsx";
 import Reports from "./admin/Reports.jsx";
 import Admins from "./admin/Admins.jsx";
 import Providers from "./admin/Providers.jsx";
+import Agents from "./admin/Agents.jsx";
 import { useAuth } from "../auth.jsx";
 import { useI18n } from "../useI18n";
 
@@ -26,6 +27,7 @@ const TAB_IDS = [
   ["fleet", "tab_fleet", Fleet, <Truck size={ICON_SIZE} />],
   ["routes", "tab_routes", RoutesTab, <Route size={ICON_SIZE} />],
   ["complaints", "tab_complaints", Complaints, <MessageSquare size={ICON_SIZE} />],
+  ["agents", "tab_agents", Agents, <Footprints size={ICON_SIZE} />],
   ["reports", "tab_reports", Reports, <BarChart3 size={ICON_SIZE} />],
 ];
 // Only the super admin manages zones and other admins, so only they get these tabs

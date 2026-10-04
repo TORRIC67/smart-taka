@@ -15,7 +15,7 @@ from app.db.base import Base
 from app.db.migrate import ensure_columns, ensure_default_provider, ensure_super_admin
 from app.db.session import SessionLocal, engine
 from app.payments.service import reconcile_pending
-from app.routers import admin, auth, billing, complaints, payments, providers_public, routes, sensors
+from app.routers import admin, agent, auth, billing, complaints, payments, providers_public, routes, sensors
 
 log = logging.getLogger("smarttaka")
 
@@ -67,6 +67,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(providers_public.router)
 app.include_router(admin.router)
+app.include_router(agent.router)
 app.include_router(payments.router)
 app.include_router(complaints.router)
 app.include_router(billing.router)

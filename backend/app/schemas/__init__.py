@@ -1,6 +1,6 @@
 """Request/response shapes (what the frontend sends and receives). Pydantic validates them for us."""
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -72,6 +72,29 @@ class AdminCreate(_WithPhone):
     full_name: str = Field(min_length=2, max_length=120)
     password: str = Field(min_length=8, max_length=72)
     provider_id: int  # which zone this admin manages - required (only a super admin has none)
+
+
+class AgentCreate(_WithPhone):
+    full_name: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=8, max_length=72)
+    wards: List[str] = Field(min_length=1)  # the street(s)/mitaa this agent covers
+    provider_id: Optional[int] = None  # see CustomerCreate.provider_id
+
+
+class AgentWardsUpdate(BaseModel):
+    wards: List[str] = Field(min_length=1)
+
+
+class AgentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    phone: str
+    is_active: bool
+    provider_id: Optional[int] = None
+    provider_name: Optional[str] = None
+    wards: List[str] = []
 
 
 class ProviderCreate(BaseModel):

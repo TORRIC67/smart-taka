@@ -1,4 +1,5 @@
 # Importing every model here makes SQLAlchemy know about all tables when we create them.
+from app.models.agent_ward import AgentWard  # noqa: F401
 from app.models.complaint import Complaint  # noqa: F401
 from app.models.customer import Customer  # noqa: F401
 from app.models.fleet import Driver, Truck  # noqa: F401

@@ -7,6 +7,7 @@ import ChangePassword from "./pages/ChangePassword.jsx";
 import SelfRegister from "./pages/SelfRegister.jsx";
 import Admin from "./pages/Admin.jsx";
 import Driver from "./pages/Driver.jsx";
+import Agent from "./pages/Agent.jsx";
 import Resident from "./pages/Resident.jsx";
 
 // Only lets the right role in; everyone else is sent to login or to their own page
@@ -26,9 +27,10 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/register" element={<SelfRegister />} />
-      <Route path="/change-password" element={<Protected role={["admin", "super_admin", "resident", "driver"]}><ChangePassword /></Protected>} />
+      <Route path="/change-password" element={<Protected role={["admin", "super_admin", "resident", "driver", "agent"]}><ChangePassword /></Protected>} />
       <Route path="/admin" element={<Protected role={["admin", "super_admin"]}><Admin /></Protected>} />
       <Route path="/driver" element={<Protected role="driver"><Driver /></Protected>} />
+      <Route path="/agent" element={<Protected role="agent"><Agent /></Protected>} />
       <Route path="/me" element={<Protected role="resident"><Resident /></Protected>} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

@@ -116,6 +116,7 @@ const dict = {
   tab_admins: { sw: "Maadmin", en: "Admins", fr: "Administrateurs" },
   tab_providers: { sw: "Kanda (Providers)", en: "Zones (Providers)", fr: "Zones (Prestataires)" },
   tab_reports: { sw: "Ripoti", en: "Reports", fr: "Rapports" },
+  tab_agents: { sw: "Mawakala", en: "Field agents", fr: "Agents de terrain" },
 
   // ---- overview ----
   live_map_title: { sw: "Ramani ya ukusanyaji (moja kwa moja)", en: "Live collection map", fr: "Carte de collecte en direct" },
@@ -408,6 +409,35 @@ const dict = {
   wallet_topup_label: { sw: "Kuongeza kwenye wallet", en: "Wallet top-up", fr: "Recharge du portefeuille" },
   sidebar_tagline: { sw: "Miji Safi, Maisha Bora", en: "Clean Cities, Healthy Lives", fr: "Villes propres, vies saines" },
 
+
+  // ---- field agents ----
+  agent_dashboard_title: { sw: "Dashibodi ya Wakala", en: "Field Agent Dashboard", fr: "Tableau de bord de l'agent" },
+  agent_wards_label: { sw: "Mitaa yako", en: "Your streets", fr: "Vos rues" },
+  agent_hint: {
+    sw: "Unaweza kuona na kusajili wateja wa mitaa yako tu. Kama kuna kitu cha kubadilisha kwa mteja aliyeshasajiliwa, wasiliana na admin wako.",
+    en: "You can only view and register customers in your assigned streets. To change anything about an existing customer, contact your admin.",
+    fr: "Vous ne pouvez voir et inscrire que les clients de vos rues assignées. Pour modifier un client existant, contactez votre administrateur.",
+  },
+  agent_register_title: { sw: "Sajili mteja mpya", en: "Register a new customer", fr: "Inscrire un nouveau client" },
+  agent_register_submit: { sw: "Sajili", en: "Register", fr: "Inscrire" },
+  agent_register_success: { sw: "{name} amesajiliwa.", en: "{name} registered.", fr: "{name} inscrit." },
+  agent_no_customers: { sw: "Hakuna wateja bado kwenye mitaa yako.", en: "No customers yet in your streets.", fr: "Aucun client pour le moment dans vos rues." },
+
+  agents_add_title: { sw: "Ongeza wakala wa mtaa", en: "Add a field agent", fr: "Ajouter un agent de terrain" },
+  agents_add_hint: {
+    sw: "Wakala anaweza kuona na kusajili wateja wa mitaa aliyopewa tu. Hawezi kuhariri wala kufuta chochote.",
+    en: "An agent can only view and register customers in the streets you assign them. They cannot edit or delete anything.",
+    fr: "Un agent ne peut voir et inscrire que les clients des rues qui lui sont assignées. Il ne peut rien modifier ni supprimer.",
+  },
+  agents_add_submit: { sw: "Ongeza wakala", en: "Add agent", fr: "Ajouter l'agent" },
+  agent_added_success: { sw: "Wakala {name} ameongezwa.", en: "Agent {name} added.", fr: "Agent {name} ajouté." },
+  agent_wards_field_label: { sw: "Mitaa (tenganisha kwa koma)", en: "Streets (comma-separated)", fr: "Rues (séparées par des virgules)" },
+  agent_wards_column: { sw: "Mitaa", en: "Streets", fr: "Rues" },
+  agent_wards_edit_hint: { sw: "Badilisha orodha ya mitaa, tenganisha kwa koma.", en: "Edit the list of streets, comma-separated.", fr: "Modifiez la liste des rues, séparées par des virgules." },
+  agent_no_agents: { sw: "Hakuna wakala bado.", en: "No field agents yet.", fr: "Aucun agent de terrain pour le moment." },
+  confirm_remove_agent: { sw: "Kumtoa {name}? Hataweza kuingia tena mpaka umrejeshe.", en: "Remove {name}? They won't be able to log in until restored.", fr: "Retirer {name} ? Il ne pourra plus se connecter tant qu'il ne sera pas rétabli." },
+  agent_removed_notice: { sw: "Wakala {name} ameondolewa.", en: "Agent {name} removed.", fr: "Agent {name} retiré." },
+  agent_restored_notice: { sw: "Wakala {name} amerejeshwa.", en: "Agent {name} restored.", fr: "Agent {name} rétabli." },
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

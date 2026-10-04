@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_optional_scope, get_required_provider, require_roles
 from app.core.security import hash_password
+from app.models.agent_ward import AgentWard
 from app.models.complaint import Complaint
 from app.models.customer import Customer, PaymentStatus
 from app.models.fleet import Driver, Truck
@@ -24,9 +25,9 @@ from app.models.waste_bin import WasteBin
 from app.models.webhook_log import WebhookLog
 from app.routing.planner import complete_stop, route_details, stop_dict
 from app.schemas import (
-    AdminCreate, AdminOut, BinCreate, BinOut, BinUpdate, CustomerCreate, CustomerOut,
-    CustomerUpdate, DriverCreate, DriverOut, PaymentHistoryOut, ProviderCreate, ProviderOut,
-    ProviderUpdate,
+    AdminCreate, AdminOut, AgentCreate, AgentOut, AgentWardsUpdate, BinCreate, BinOut,
+    BinUpdate, CustomerCreate, CustomerOut, CustomerUpdate, DriverCreate, DriverOut,
+    PaymentHistoryOut, ProviderCreate, ProviderOut, ProviderUpdate,
 )
 from app.services.billing import today_tz
 from app.services.customers import create_customer
@@ -265,6 +266,83 @@ def list_drivers(scope: Optional[int] = Depends(get_optional_scope), db: Session
         )
         for driver, user, truck in rows
     ]
+
+
+# ---------- field agents (door-to-door collectors): managed by the zone's own admin ----------
+def _agent_out(db: Session, user: User) -> AgentOut:
+    provider = db.get(ServiceProvider, user.provider_id) if user.provider_id else None
+    wards = db.scalars(select(AgentWard.ward).where(AgentWard.user_id == user.id).order_by(AgentWard.ward)).all()
+    return AgentOut(
+        id=user.id, full_name=user.full_name, phone=user.phone, is_active=user.is_active,
+        provider_id=user.provider_id, provider_name=provider.name if provider else None, wards=list(wards),
+    )
+
+
+@router.post("/agents", response_model=AgentOut, status_code=201)
+def register_agent(data: AgentCreate, user: User = Depends(require_roles(*Role.ADMINS)), db: Session = Depends(get_db)):
+    """A field agent reminds people door-to-door to pay, and can register new customers -
+    but only within the street(s)/mitaa they are assigned here. They can't edit or remove
+    anyone; that stays with the admin."""
+    provider_id = _resolve_creation_provider(user, data.provider_id, db)
+    agent_user = User(
+        full_name=data.full_name, phone=data.phone, password_hash=hash_password(data.password),
+        role=Role.AGENT, provider_id=provider_id,
+    )
+    db.add(agent_user)
+    try:
+        db.flush()
+        for ward in dict.fromkeys(w.strip() for w in data.wards if w.strip()):  # de-duplicate, keep order
+            db.add(AgentWard(user_id=agent_user.id, ward=ward))
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Phone number is already registered")
+    return _agent_out(db, agent_user)
+
+
+@router.get("/agents", response_model=List[AgentOut])
+def list_agents(scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
+    q = select(User).where(User.role == Role.AGENT)
+    if scope is not None:
+        q = q.where(User.provider_id == scope)
+    return [_agent_out(db, u) for u in db.scalars(q.order_by(User.id)).all()]
+
+
+def _owned_agent(db: Session, agent_id: int, scope: Optional[int]) -> User:
+    agent = db.get(User, agent_id)
+    if agent is None or agent.role != Role.AGENT or (scope is not None and agent.provider_id != scope):
+        raise HTTPException(404, "Agent not found")
+    return agent
+
+
+@router.patch("/agents/{agent_id}", response_model=AgentOut)
+def update_agent_wards(
+    agent_id: int, data: AgentWardsUpdate,
+    scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db),
+):
+    """Replaces the full list of streets this agent covers (e.g. add or remove a mtaa)."""
+    agent = _owned_agent(db, agent_id, scope)
+    db.query(AgentWard).filter(AgentWard.user_id == agent.id).delete()
+    for ward in dict.fromkeys(w.strip() for w in data.wards if w.strip()):
+        db.add(AgentWard(user_id=agent.id, ward=ward))
+    db.commit()
+    return _agent_out(db, agent)
+
+
+@router.delete("/agents/{agent_id}", response_model=AgentOut)
+def remove_agent(agent_id: int, scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
+    agent = _owned_agent(db, agent_id, scope)
+    agent.is_active = False
+    db.commit()
+    return _agent_out(db, agent)
+
+
+@router.post("/agents/{agent_id}/reactivate", response_model=AgentOut)
+def reactivate_agent(agent_id: int, scope: Optional[int] = Depends(get_optional_scope), db: Session = Depends(get_db)):
+    agent = _owned_agent(db, agent_id, scope)
+    agent.is_active = True
+    db.commit()
+    return _agent_out(db, agent)
 
 
 # ---------- viewing things ----------

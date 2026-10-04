@@ -13,6 +13,7 @@ class Role:
     ADMIN = "admin"
     RESIDENT = "resident"
     DRIVER = "driver"
+    AGENT = "agent"  # door-to-door collector: sees/registers customers in their assigned street(s) only
     ADMINS = (ADMIN, SUPER_ADMIN)  # everyone who may use the admin screens
 
 
