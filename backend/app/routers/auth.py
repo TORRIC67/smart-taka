@@ -61,7 +61,7 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
         "role": user.role,
         "customer_id": customer.id if customer else None,
         "customer": CustomerOut.model_validate(customer).model_dump() if customer else None,
-        "monthly_fee_tzs": settings.MONTHLY_FEE_TZS,
+        "monthly_fee_tzs": customer.effective_fee_tzs if customer else settings.MONTHLY_FEE_TZS,
     }
 
 

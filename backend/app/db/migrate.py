@@ -32,6 +32,8 @@ NEW_COLUMNS = [
     ("users", "reset_otp_expires_at", "TIMESTAMP"),
     ("customers", "wallet_balance_tzs", "INTEGER NOT NULL DEFAULT 0"),
     ("payments", "purpose", "VARCHAR(20) NOT NULL DEFAULT 'monthly_bill'"),
+    ("customers", "category", "VARCHAR(20) NOT NULL DEFAULT 'residential'"),
+    ("customers", "monthly_fee_tzs", "INTEGER"),  # NULL = standard fee for the zone
 ]
 
 

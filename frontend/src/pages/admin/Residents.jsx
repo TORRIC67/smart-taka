@@ -19,13 +19,14 @@ function billingSummary(r, t) {
 
 const STATUS_BADGE = { registered: "status_badge_registered", billed: "status_badge_billed", paid: "status_badge_paid" };
 
-// One editable row: full_name, phone, ward, address, latitude, longitude.
+// One editable row: full_name, phone, ward, address, latitude, longitude, category, custom fee.
 // Kept as its own component so each row's draft state doesn't cause the whole table to re-render.
 function EditRow({ customer, onSaved, onCancel }) {
   const { t } = useI18n();
   const [v, setV] = useState({
     full_name: customer.full_name, phone: customer.phone, ward: customer.ward,
     address: customer.address || "", latitude: customer.latitude, longitude: customer.longitude,
+    category: customer.category || "residential", monthly_fee_tzs: customer.monthly_fee_tzs || "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +38,7 @@ function EditRow({ customer, onSaved, onCancel }) {
     try {
       const updated = await patch(`/admin/customers/${customer.id}`, {
         ...v, latitude: Number(v.latitude), longitude: Number(v.longitude),
+        monthly_fee_tzs: v.monthly_fee_tzs === "" ? 0 : Number(v.monthly_fee_tzs), // 0 = clear back to the zone's standard fee
       });
       onSaved(updated);
     } catch (e) {
@@ -48,7 +50,7 @@ function EditRow({ customer, onSaved, onCancel }) {
 
   return (
     <tr>
-      <td colSpan={5}>
+      <td colSpan={6}>
         <div className="grid2" style={{ marginBottom: 8 }}>
           <label>{t("field_full_name")}<input value={v.full_name} onChange={(e) => set("full_name", e.target.value)} /></label>
           <label>{t("field_phone")}<input value={v.phone} onChange={(e) => set("phone", e.target.value)} /></label>
@@ -56,6 +58,15 @@ function EditRow({ customer, onSaved, onCancel }) {
           <label>{t("field_address")}<input value={v.address} onChange={(e) => set("address", e.target.value)} /></label>
           <label>{t("field_latitude")}<input type="number" step="any" value={v.latitude} onChange={(e) => set("latitude", e.target.value)} /></label>
           <label>{t("field_longitude")}<input type="number" step="any" value={v.longitude} onChange={(e) => set("longitude", e.target.value)} /></label>
+          <label>{t("field_customer_category")}
+            <select value={v.category} onChange={(e) => set("category", e.target.value)}>
+              <option value="residential">{t("category_residential")}</option>
+              <option value="institution">{t("category_institution")}</option>
+            </select>
+          </label>
+          <label>{t("field_custom_fee")}
+            <input type="number" placeholder={t("field_custom_fee_placeholder")} value={v.monthly_fee_tzs} onChange={(e) => set("monthly_fee_tzs", e.target.value)} />
+          </label>
         </div>
         <div className="row" style={{ margin: 0 }}>
           <button className="btn" disabled={busy} onClick={save}>{busy ? t("saving") : t("save")}</button>
@@ -167,7 +178,7 @@ export default function Residents() {
           <thead>
             <tr>
               <th>{t("th_name")}</th><th>{t("th_phone")}</th><th>{t("th_ward")}</th>
-              <th>{t("th_status")}</th><th>{t("th_actions")}</th>
+              <th>{t("th_fee")}</th><th>{t("th_status")}</th><th>{t("th_actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,6 +190,10 @@ export default function Residents() {
                   <td>{r.full_name}</td>
                   <td>{r.phone}</td>
                   <td>{r.ward}</td>
+                  <td>
+                    TZS {Number(r.effective_fee_tzs).toLocaleString()}
+                    {r.category === "institution" && <span className="badge" style={{ marginLeft: 6 }}>{t("category_institution")}</span>}
+                  </td>
                   <td>
                     {r.is_active
                       ? <span className={`badge ${r.payment_status}`}>{t(STATUS_BADGE[r.payment_status])}</span>
@@ -206,7 +221,7 @@ export default function Residents() {
                 </tr>
               )
             )}
-            {shown.length === 0 && <tr><td colSpan={5} className="muted">{t("no_customers")}</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={6} className="muted">{t("no_customers")}</td></tr>}
           </tbody>
         </table>
       </div>

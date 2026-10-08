@@ -438,6 +438,19 @@ const dict = {
   confirm_remove_agent: { sw: "Kumtoa {name}? Hataweza kuingia tena mpaka umrejeshe.", en: "Remove {name}? They won't be able to log in until restored.", fr: "Retirer {name} ? Il ne pourra plus se connecter tant qu'il ne sera pas rétabli." },
   agent_removed_notice: { sw: "Wakala {name} ameondolewa.", en: "Agent {name} removed.", fr: "Agent {name} retiré." },
   agent_restored_notice: { sw: "Wakala {name} amerejeshwa.", en: "Agent {name} restored.", fr: "Agent {name} rétabli." },
+
+  // ---- institutions / custom fee ----
+  register_customer_hint: {
+    sw: "Acha 'Bei maalum' wazi kwa mteja wa kawaida (atalipa bei ya kawaida ya kanda). Jaza kiasi kwa taasisi/jengo kubwa linalolipa tofauti.",
+    en: "Leave 'Custom fee' blank for an ordinary resident (they pay the zone's standard fee). Fill it in for an institution/large building that pays a different amount.",
+    fr: "Laissez 'Tarif personnalisé' vide pour un résident ordinaire (tarif standard de la zone). Remplissez-le pour une institution qui paie un montant différent.",
+  },
+  field_customer_category: { sw: "Aina ya mteja", en: "Customer type", fr: "Type de client" },
+  category_residential: { sw: "Makazi (ya kawaida)", en: "Residential", fr: "Résidentiel" },
+  category_institution: { sw: "Taasisi / Jengo kubwa", en: "Institution", fr: "Institution" },
+  field_custom_fee: { sw: "Bei maalum ya mwezi (TZS) - hiari", en: "Custom monthly fee (TZS) - optional", fr: "Tarif mensuel personnalisé (TZS) - facultatif" },
+  field_custom_fee_placeholder: { sw: "Acha wazi = bei ya kawaida ya kanda", en: "Leave blank = zone's standard fee", fr: "Laisser vide = tarif standard de la zone" },
+  th_fee: { sw: "Ada", en: "Fee", fr: "Tarif" },
 };
 
 let currentLang = (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "sw";

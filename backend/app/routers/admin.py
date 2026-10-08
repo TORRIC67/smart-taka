@@ -54,7 +54,7 @@ def _resolve_creation_provider(user: User, requested_provider_id: Optional[int],
 @router.post("/customers", response_model=CustomerOut, status_code=201)
 def register_customer(data: CustomerCreate, user: User = Depends(require_roles(*Role.ADMINS)), db: Session = Depends(get_db)):
     provider_id = _resolve_creation_provider(user, data.provider_id, db)
-    return create_customer(db, data, provider_id)
+    return create_customer(db, data, provider_id, category=data.category, monthly_fee_tzs=data.monthly_fee_tzs)
 
 
 @router.post("/drivers", status_code=201)

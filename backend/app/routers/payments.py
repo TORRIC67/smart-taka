@@ -123,7 +123,7 @@ def collect(
             provider,
             customer_id=customer.id,
             phone=pay_phone,
-            amount=settings.MONTHLY_FEE_TZS,  # fixed server-side so nobody can pay less
+            amount=customer.effective_fee_tzs,  # fixed server-side so nobody can pay less (their own custom fee if they have one)
             billing_period=period,
             webhook_url=settings.HARAKAPAY_WEBHOOK_URL,
             provider_id=customer.provider_id,
@@ -167,7 +167,7 @@ def wallet_pay_bill(body: PayFromWalletRequest, db: Session = Depends(get_db), u
         raise HTTPException(403, "Not allowed")
     period = body.billing_period or datetime.now().strftime("%Y-%m")
     try:
-        return pay_bill_from_wallet(db, customer=customer, billing_period=period, fee_amount=settings.MONTHLY_FEE_TZS)
+        return pay_bill_from_wallet(db, customer=customer, billing_period=period, fee_amount=customer.effective_fee_tzs)
     except AlreadyPaidError:
         raise HTTPException(409, "Already paid for this period")
     except InsufficientWalletError:

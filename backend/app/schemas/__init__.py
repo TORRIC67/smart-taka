@@ -26,6 +26,8 @@ class CustomerCreate(_WithPhone):
     # Ignored for a regular admin (their own zone is used automatically).
     # Required when a super admin registers a customer directly.
     provider_id: Optional[int] = None
+    category: str = "residential"  # "residential" | "institution"
+    monthly_fee_tzs: Optional[int] = Field(default=None, gt=0)  # custom fee; blank = zone's standard fee
 
 
 class CustomerUpdate(BaseModel):
@@ -37,6 +39,9 @@ class CustomerUpdate(BaseModel):
     address: Optional[str] = Field(default=None, max_length=255)
     latitude: Optional[float] = Field(default=None, ge=-90, le=90)
     longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    category: Optional[str] = None
+    # Send a number to set a custom fee, or 0 to clear it back to the zone's standard fee.
+    monthly_fee_tzs: Optional[int] = Field(default=None, ge=0)
 
     @field_validator("phone")
     @classmethod
@@ -147,6 +152,9 @@ class CustomerOut(BaseModel):
     longitude: float
     payment_status: str
     is_active: bool = True
+    category: str = "residential"
+    monthly_fee_tzs: Optional[int] = None  # the RAW custom override (None = uses the zone's standard fee)
+    effective_fee_tzs: int = 0  # what they actually owe - filled in by the endpoint
 
 
 class BinOut(BaseModel):
