@@ -108,7 +108,7 @@ export default function Agents() {
         <p className="muted" style={{ marginTop: -8 }}>{t("agents_add_hint")}</p>
         <div className="grid2">
           <label>{t("field_full_name")}<input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} required /></label>
-          <label>{t("field_phone")}<input type="tel" placeholder="0712345678" value={form.phone} onChange={(e) => set("phone", e.target.value)} required /></label>
+          <label>{t("field_phone")}<input type="tel" placeholder="0754123406" value={form.phone} onChange={(e) => set("phone", e.target.value)} required /></label>
           <label>{t("field_password")}<input type="password" value={form.password} onChange={(e) => set("password", e.target.value)} minLength={8} required /></label>
           <label>{t("agent_wards_field_label")}<input value={form.wards} onChange={(e) => set("wards", e.target.value)} placeholder="Sinza, Kinondoni" required /></label>
           {isSuperAdmin && (

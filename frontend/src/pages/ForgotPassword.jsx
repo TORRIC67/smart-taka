@@ -56,7 +56,7 @@ export default function ForgotPassword() {
           <>
             <p className="muted" style={{ margin: 0 }}>{t("forgot_password_hint")}</p>
             <label>{t("phone_label")}
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712345678" required />
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0754123406" required />
             </label>
             <button className="btn" disabled={busy}>{busy ? t("saving") : t("send_code_btn")}</button>
           </>

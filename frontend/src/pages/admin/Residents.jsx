@@ -52,7 +52,7 @@ function EditRow({ customer, onSaved, onCancel }) {
     <tr>
       <td colSpan={6}>
         <div className="grid2" style={{ marginBottom: 8 }}>
-          <label>{t("field_full_name")}<input value={v.full_name} onChange={(e) => set("full_name", e.target.value)} /></label>
+          <label>{t("field_customer_name")}<input value={v.full_name} onChange={(e) => set("full_name", e.target.value)} /></label>
           <label>{t("field_phone")}<input value={v.phone} onChange={(e) => set("phone", e.target.value)} /></label>
           <label>{t("field_ward")}<input value={v.ward} onChange={(e) => set("ward", e.target.value)} /></label>
           <label>{t("field_address")}<input value={v.address} onChange={(e) => set("address", e.target.value)} /></label>

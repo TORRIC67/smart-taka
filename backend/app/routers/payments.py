@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 # Adjust these imports to match your project:
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
-from app.core.phone import normalize_phone
+from app.core.phone import validate_tz_mobile
 from app.models.customer import Customer
 from app.models.payment import Payment
 from app.models.provider import ServiceProvider
@@ -114,9 +114,9 @@ def collect(
     pay_phone = customer.phone
     if body.phone:
         try:
-            pay_phone = normalize_phone(body.phone)
-        except ValueError:
-            raise HTTPException(400, "Invalid phone number")
+            pay_phone = validate_tz_mobile(body.phone)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
     try:
         return start_payment(
             db,

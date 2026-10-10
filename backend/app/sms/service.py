@@ -29,12 +29,13 @@ def get_sms_provider() -> SmsProvider:
     return MockSmsProvider()
 
 
-def billing_message(full_name: str, period: str, fee_tzs: int) -> str:
+def billing_message(full_name: str, period: str, fee_tzs: int, is_institution: bool = False) -> str:
     """The text customers receive. Edit the wording here. Keep it short: every 160 characters = 1 SMS charged.
-    fee_tzs is THIS customer's own amount (their custom fee if they have one, otherwise the zone's standard fee)."""
-    first_name = full_name.split()[0]
+    fee_tzs is THIS customer's own amount (their custom fee if they have one, otherwise the zone's standard fee).
+    A person is greeted by first name; a company/institution by its whole name ("Habari Chuo" would be wrong)."""
+    greeting_name = full_name.strip() if is_institution else full_name.split()[0]
     return (
-        f"Smart Taka: Habari {first_name}, ada ya taka ya {period} ni TZS {fee_tzs:,}. "
+        f"Smart Taka: Habari {greeting_name}, ada ya taka ya {period} ni TZS {fee_tzs:,}. "
         f"Lipia kwa kuingia {settings.APP_URL}, bonyeza Make payment na uweke PIN ya simu. Asante."
     )
 
@@ -65,7 +66,7 @@ def send_billing_sms(db: Session, provider: SmsProvider, customers: List[Custome
             out["already_sent"] += 1
             continue
 
-        message = billing_message(c.full_name, period, c.effective_fee_tzs)
+        message = billing_message(c.full_name, period, c.effective_fee_tzs, c.category == "institution")
         result = provider.send(c.phone, message)
         db.add(
             SmsLog(

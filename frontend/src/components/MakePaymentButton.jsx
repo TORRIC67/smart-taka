@@ -101,7 +101,7 @@ export default function MakePaymentButton({ customerId, alreadyPaid = false, onP
               {t("pay_different_phone_link")}
             </button>
           ) : (
-            <input type="tel" placeholder="0712345678" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} style={{ width: 140, fontSize: 13 }} />
+            <input type="tel" placeholder="0754123406" value={altPhone} onChange={(e) => setAltPhone(e.target.value)} style={{ width: 140, fontSize: 13 }} />
           )}
         </>
       )}

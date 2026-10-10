@@ -24,7 +24,7 @@ export default function Admins() {
 
   const adminFields = [
     { name: "full_name", labelKey: "field_full_name", required: true },
-    { name: "phone", labelKey: "field_phone", type: "tel", placeholder: "0712345678", required: true },
+    { name: "phone", labelKey: "field_phone", type: "tel", placeholder: "0754123406", required: true },
     { name: "password", labelKey: "field_password", type: "password", required: true },
     {
       name: "provider_id", labelKey: "field_zone", type: "select", numeric: true, required: true,

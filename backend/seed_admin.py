@@ -8,7 +8,7 @@ import sys
 from sqlalchemy import select
 
 import app.models  # noqa: F401
-from app.core.phone import normalize_phone
+from app.core.phone import validate_tz_mobile
 from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
@@ -19,7 +19,7 @@ def main():
     if len(sys.argv) != 3:
         sys.exit('Usage: python seed_admin.py <phone> "<full name>"')
     try:
-        phone = normalize_phone(sys.argv[1])
+        phone = validate_tz_mobile(sys.argv[1])
     except ValueError as exc:
         sys.exit(str(exc))
 

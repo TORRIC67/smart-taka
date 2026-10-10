@@ -67,8 +67,8 @@ export default function Agent() {
       <form className="card form" onSubmit={submit}>
         <h3>{t("agent_register_title")}</h3>
         <div className="grid2">
-          <label>{t("field_full_name")}<input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} required /></label>
-          <label>{t("field_phone")}<input type="tel" placeholder="0712345678" value={form.phone} onChange={(e) => set("phone", e.target.value)} required /></label>
+          <label>{t("field_customer_name")}<input value={form.full_name} onChange={(e) => set("full_name", e.target.value)} required /></label>
+          <label>{t("field_phone")}<input type="tel" placeholder="0754123406" value={form.phone} onChange={(e) => set("phone", e.target.value)} required /></label>
           <label>{t("field_password")}<input type="password" value={form.password} onChange={(e) => set("password", e.target.value)} minLength={8} required /></label>
           <label>{t("field_ward")}
             <select value={form.ward} onChange={(e) => set("ward", e.target.value)} required>

@@ -28,7 +28,7 @@ export async function request(path, options = {}) {
   if (!res.ok) {
     // FastAPI sends errors in `detail` (text, or a list for validation errors)
     let msg = data.detail;
-    if (Array.isArray(msg)) msg = msg.map((d) => `${(d.loc || []).slice(1).join(".")}: ${d.msg}`).join("; ");
+    if (Array.isArray(msg)) msg = msg.map((d) => `${(d.loc || []).slice(1).join(".")}: ${String(d.msg).replace(/^Value error,\s*/, "")}`).join("; ");
     else if (msg && typeof msg === "object") msg = JSON.stringify(msg);
     if (res.status === 401 && token) window.dispatchEvent(new Event("auth-expired")); // token expired -> logout
     const err = new Error(msg || `Request failed (${res.status})`);

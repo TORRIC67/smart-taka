@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.phone import normalize_phone
+from app.core.phone import validate_tz_mobile
 
 
 class _WithPhone(BaseModel):
@@ -13,7 +13,7 @@ class _WithPhone(BaseModel):
     @field_validator("phone")
     @classmethod
     def _clean_phone(cls, v: str) -> str:
-        return normalize_phone(v)  # ValueError becomes a clear 422 message for the client
+        return validate_tz_mobile(v)  # real Tanzanian mobile numbers only; ValueError becomes a clear 422 message
 
 
 class CustomerCreate(_WithPhone):
@@ -46,7 +46,7 @@ class CustomerUpdate(BaseModel):
     @field_validator("phone")
     @classmethod
     def _clean_phone(cls, v):
-        return normalize_phone(v) if v else v
+        return validate_tz_mobile(v) if v else v
 
 
 class DriverCreate(_WithPhone):

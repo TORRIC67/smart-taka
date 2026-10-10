@@ -34,7 +34,7 @@ export default function Login() {
         <LanguageSwitcher />
       </div>
       <label>{t("phone_label")}
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712345678" required />
+        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0754123406" required />
       </label>
       <label>{t("password_label")}
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />

@@ -59,6 +59,11 @@ const dict = {
   saved_generic: { sw: "Imehifadhiwa.", en: "Saved.", fr: "Enregistré." },
 
   field_full_name: { sw: "Jina kamili", en: "Full name", fr: "Nom complet" },
+  field_customer_name: {
+    sw: "Jina / ID (mtu, kampuni au taasisi)",
+    en: "Name / ID (person, company or institution)",
+    fr: "Nom / ID (personne, entreprise ou institution)",
+  },
   field_phone: { sw: "Namba ya simu", en: "Phone number", fr: "Numéro de téléphone" },
   field_password: {
     sw: "Password (angalau herufi 8)", en: "Password (at least 8 characters)", fr: "Mot de passe (8 caractères min.)",
