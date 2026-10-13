@@ -9,7 +9,7 @@ Flow with HarakaPay (it is asynchronous, unlike a simple "confirm" call):
                          'completed' and runs on_payment_completed() exactly once.
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy import select
